@@ -1,0 +1,20 @@
+{
+  "rice": { "calories_per_100g": 130, "protein_per_100g": 2.4, "carbs_per_100g": 28.6, "fat_per_100g": 0.3 },
+  "chicken": { "calories_per_100g": 165, "protein_per_100g": 31.0, "carbs_per_100g": 0.0, "fat_per_100g": 3.6 },
+  "chicken breast": { "calories_per_100g": 165, "protein_per_100g": 31.0, "carbs_per_100g": 0.0, "fat_per_100g": 3.6 },
+  "egg": { "calories_per_100g": 155, "protein_per_100g": 13.0, "carbs_per_100g": 1.1, "fat_per_100g": 11.0 },
+  "bread": { "calories_per_100g": 265, "protein_per_100g": 9.0, "carbs_per_100g": 51.0, "fat_per_100g": 3.2 },
+  "apple": { "calories_per_100g": 52, "protein_per_100g": 0.3, "carbs_per_100g": 14.0, "fat_per_100g": 0.2 },
+  "banana": { "calories_per_100g": 89, "protein_per_100g": 1.1, "carbs_per_100g": 23.0, "fat_per_100g": 0.3 },
+  "pasta": { "calories_per_100g": 158, "protein_per_100g": 5.8, "carbs_per_100g": 31.0, "fat_per_100g": 0.9 },
+  "beef": { "calories_per_100g": 250, "protein_per_100g": 26.0, "carbs_per_100g": 0.0, "fat_per_100g": 17.0 },
+  "fish": { "calories_per_100g": 136, "protein_per_100g": 20.0, "carbs_per_100g": 0.0, "fat_per_100g": 6.0 },
+  "tomato": { "calories_per_100g": 18, "protein_per_100g": 0.9, "carbs_per_100g": 3.9, "fat_per_100g": 0.2 },
+  "potato": { "calories_per_100g": 87, "protein_per_100g": 1.9, "carbs_per_100g": 20.0, "fat_per_100g": 0.1 },
+  "carrot": { "calories_per_100g": 41, "protein_per_100g": 0.9, "carbs_per_100g": 10.0, "fat_per_100g": 0.2 },
+  "broccoli": { "calories_per_100g": 34, "protein_per_100g": 2.8, "carbs_per_100g": 6.6, "fat_per_100g": 0.4 },
+  "orange": { "calories_per_100g": 47, "protein_per_100g": 0.9, "carbs_per_100g": 12.0, "fat_per_100g": 0.1 },
+  "cheese": { "calories_per_100g": 402, "protein_per_100g": 25.0, "carbs_per_100g": 1.3, "fat_per_100g": 33.0 },
+  "pizza": { "calories_per_100g": 266, "protein_per_100g": 11.0, "carbs_per_100g": 33.0, "fat_per_100g": 10.0 },
+  "sandwich": { "calories_per_100g": 210, "protein_per_100g": 9.0, "carbs_per_100g": 26.0, "fat_per_100g": 7.0 }
+}

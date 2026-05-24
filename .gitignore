@@ -1,0 +1,27 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.env
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Model files (too large for GitHub)
+backend/predict/model_files/*.tflite
+backend/training/checkpoints/
+backend/training/food_images/
+
+# Database
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
