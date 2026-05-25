@@ -13,8 +13,8 @@ function AppLayout() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-gray-50 pt-4 pb-12">
-        <div className="max-w-5xl mx-auto px-4">
+      <main className="min-h-screen bg-gray-50 pt-8 pb-12">
+        <div className="max-w-6xl mx-auto px-4">
           <Outlet />
         </div>
       </main>

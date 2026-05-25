@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
@@ -43,63 +43,88 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Analyze Your Meal</h1>
-      <p className="text-gray-500 mb-6">Upload a clear photo of your meal for instant nutrition analysis.</p>
+    <div className="max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6 items-start">
+        <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Analyze Meal</p>
+          <h1 className="text-3xl font-bold text-gray-950 mt-1">Upload a meal photo</h1>
+          <p className="text-gray-500 mt-3">
+            Use a clear, well-lit image so the model has the best chance of identifying the food.
+          </p>
 
-      <div
-        {...getRootProps()}
-        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-colors ${
-          isDragActive ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'
-        }`}
-      >
-        <input {...getInputProps()} />
-        {preview ? (
-          <img src={preview} alt="Meal preview" className="max-h-64 mx-auto rounded-xl object-contain" />
-        ) : (
-          <>
-            <div className="text-5xl mb-4">📷</div>
-            <p className="text-gray-600 font-medium">
-              {isDragActive ? 'Drop your meal photo here' : 'Drag & drop a meal photo, or click to select'}
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            {['JPG', 'PNG', '1 image'].map(item => (
+              <div key={item} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center text-sm font-semibold text-gray-700">
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+          <div
+            {...getRootProps()}
+            className={`min-h-[360px] border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors flex items-center justify-center ${
+              isDragActive ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'
+            }`}
+          >
+            <input {...getInputProps()} />
+            {preview ? (
+              <img src={preview} alt="Meal preview" className="max-h-[520px] w-full object-contain rounded-lg" />
+            ) : (
+              <div>
+                <div className="mx-auto h-14 w-14 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black">
+                  +
+                </div>
+                <p className="text-gray-800 font-semibold mt-4">
+                  {isDragActive ? 'Drop your meal photo here' : 'Drag and drop a meal photo, or click to select'}
+                </p>
+                <p className="text-gray-500 text-sm mt-2">Supports JPG and PNG</p>
+              </div>
+            )}
+          </div>
+
+          {preview && (
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => { setFile(null); setPreview(null); }}
+                className="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Choose Different Photo
+              </button>
+              <button
+                onClick={handleAnalyze}
+                disabled={!file || loading}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
+              >
+                {loading ? 'Analyzing...' : 'Analyze Meal'}
+              </button>
+            </div>
+          )}
+
+          {!preview && (
+            <button
+              onClick={handleAnalyze}
+              disabled={!file || loading}
+              className="mt-4 w-full bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
+            >
+              Analyze Meal
+            </button>
+          )}
+
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          {loading && (
+            <p className="text-center text-gray-500 text-sm mt-3">
+              Analyzing your meal. This may take a few seconds.
             </p>
-            <p className="text-gray-400 text-sm mt-2">Supports JPG and PNG</p>
-          </>
-        )}
+          )}
+        </section>
       </div>
-
-      {preview && (
-        <div className="mt-4 text-center">
-          <button onClick={() => { setFile(null); setPreview(null); }}
-            className="text-sm text-gray-500 underline hover:text-gray-700">
-            Remove & choose different photo
-          </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-          {error}
-        </div>
-      )}
-
-      <button
-        onClick={handleAnalyze}
-        disabled={!file || loading}
-        className="mt-6 w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center gap-3"
-      >
-        {loading ? (
-          <>
-            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-            Analyzing your meal...
-          </>
-        ) : '🔍 Analyze Meal'}
-      </button>
-
-      {loading && (
-        <p className="text-center text-gray-400 text-sm mt-3">
-          This may take a few seconds while our AI identifies your food items.
-        </p>
-      )}
     </div>
   );
 }

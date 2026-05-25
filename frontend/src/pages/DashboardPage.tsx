@@ -19,10 +19,11 @@ export default function DashboardPage() {
   }, []);
 
   const cards = stats ? [
-    { label: "Today's Calories", value: `${stats.today_calories} kcal`, icon: '🔥', color: 'bg-orange-50 border-orange-200' },
-    { label: 'Total Meals Logged', value: stats.total_meals.toString(), icon: '🍽️', color: 'bg-blue-50 border-blue-200' },
+    { label: "Today's Calories", value: `${stats.today_calories} kcal`, tone: 'border-l-orange-500' },
+    { label: 'Meals Logged', value: stats.total_meals.toString(), tone: 'border-l-blue-500' },
     {
-      label: 'Last Meal', icon: '🕐', color: 'bg-purple-50 border-purple-200',
+      label: 'Last Meal',
+      tone: 'border-l-violet-500',
       value: stats.recent_meal
         ? new Date(stats.recent_meal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : 'No meals yet'
@@ -30,38 +31,74 @@ export default function DashboardPage() {
   ] : [];
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Good {getTimeOfDay()}, {user?.first_name}! 👋
-        </h1>
-        <p className="text-gray-500 mt-1">Here's your nutrition summary for today.</p>
-      </div>
+    <div className="space-y-8">
+      <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Today</p>
+            <h1 className="text-3xl font-bold text-gray-950 mt-1">
+              Good {getTimeOfDay()}, {user?.first_name || 'there'}
+            </h1>
+            <p className="text-gray-500 mt-2">Your nutrition summary is ready when you are.</p>
+          </div>
+          <button
+            onClick={() => navigate('/upload')}
+            className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-lg transition-colors"
+          >
+            Analyze Meal
+          </button>
+        </div>
+      </section>
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-100 rounded-2xl animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-32 bg-white border border-gray-200 rounded-lg animate-pulse" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {cards.map(c => (
-            <div key={c.label} className={`border rounded-2xl p-6 ${c.color}`}>
-              <div className="text-3xl mb-2">{c.icon}</div>
-              <div className="text-2xl font-bold text-gray-900">{c.value}</div>
+            <div key={c.label} className={`bg-white border border-gray-200 border-l-4 rounded-lg p-5 shadow-sm ${c.tone}`}>
+              <div className="text-2xl font-bold text-gray-950">{c.value}</div>
               <div className="text-sm text-gray-500 mt-1">{c.label}</div>
             </div>
           ))}
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-green-600 to-emerald-500 rounded-2xl p-8 text-white">
-        <h2 className="text-xl font-bold mb-2">Ready to analyze your meal?</h2>
-        <p className="text-green-100 mb-4">Upload a photo and CalVision will identify the foods and calculate nutrition instantly.</p>
-        <button onClick={() => navigate('/upload')}
-          className="bg-white text-green-700 font-semibold px-6 py-3 rounded-xl hover:bg-green-50 transition-colors">
-          📸 Analyze a Meal
-        </button>
-      </div>
+      <section className="grid grid-cols-1 lg:grid-cols-[1fr_0.8fr] gap-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-950">Latest Meal</h2>
+          {stats?.recent_meal ? (
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <div>
+                <div className="font-semibold text-gray-900">
+                  {stats.recent_meal.food_items?.map((f: any) => f.name).join(', ') || 'Meal'}
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  {new Date(stats.recent_meal.created_at).toLocaleString()}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-bold text-green-700">{stats.recent_meal.total_calories}</div>
+                <div className="text-xs text-gray-500">kcal</div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 mt-3">Analyze a meal to start building your nutrition history.</p>
+          )}
+        </div>
+
+        <div className="bg-green-700 rounded-lg p-6 text-white shadow-sm">
+          <h2 className="text-lg font-bold">Ready for the next scan?</h2>
+          <p className="text-green-100 mt-2">Upload a meal photo and CalVision will prepare the nutrition breakdown.</p>
+          <button
+            onClick={() => navigate('/upload')}
+            className="mt-5 bg-white text-green-800 font-semibold px-5 py-3 rounded-lg hover:bg-green-50 transition-colors"
+          >
+            Start Analysis
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

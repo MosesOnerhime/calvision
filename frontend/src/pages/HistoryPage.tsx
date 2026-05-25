@@ -1,10 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
-interface FoodItem { id: number; name: string; weight_grams: number; calories: number; protein: number; carbs: number; fat: number; }
-interface MealLog { id: number; created_at: string; total_calories: number; image_url: string | null; food_items: FoodItem[]; }
+interface FoodItem {
+  id: number;
+  name: string;
+  weight_grams: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+interface MealLog {
+  id: number;
+  created_at: string;
+  total_calories: number;
+  image_url: string | null;
+  food_items: FoodItem[];
+}
 
 export default function HistoryPage() {
+  const navigate = useNavigate();
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -16,84 +33,189 @@ export default function HistoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Meal History</h1>
-      <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />)}</div>
-    </div>
-  );
+  const stats = useMemo(() => {
+    const totalCalories = meals.reduce((sum, meal) => sum + Number(meal.total_calories || 0), 0);
+    const itemCount = meals.reduce((sum, meal) => sum + meal.food_items.length, 0);
+    const averageCalories = meals.length ? Math.round(totalCalories / meals.length) : 0;
+
+    return {
+      totalCalories: Math.round(totalCalories),
+      itemCount,
+      averageCalories,
+    };
+  }, [meals]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader count={0} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse" />)}
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Meal History</h1>
-      <p className="text-gray-500 mb-6">{meals.length} meals logged</p>
+    <div className="space-y-6">
+      <PageHeader count={meals.length} />
+
+      {meals.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard label="Meals Logged" value={meals.length.toString()} accent="border-l-green-500" />
+          <StatCard label="Total Calories" value={`${stats.totalCalories} kcal`} accent="border-l-orange-500" />
+          <StatCard label="Average Meal" value={`${stats.averageCalories} kcal`} accent="border-l-blue-500" />
+        </div>
+      )}
 
       {meals.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <div className="text-5xl mb-3">🍽️</div>
-          <p className="font-medium">No meals logged yet</p>
-          <p className="text-sm mt-1">Analyze your first meal to get started!</p>
+        <div className="bg-white border border-gray-200 rounded-lg p-10 text-center shadow-sm">
+          <div className="mx-auto h-12 w-12 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black">
+            +
+          </div>
+          <h2 className="text-xl font-bold text-gray-950 mt-5">No meals logged yet</h2>
+          <p className="text-gray-500 mt-2">Analyze your first meal to start building a nutrition history.</p>
+          <button
+            onClick={() => navigate('/upload')}
+            className="mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-lg transition-colors"
+          >
+            Analyze Meal
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
           {meals.map(meal => (
-            <div key={meal.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-              <button
-                onClick={() => setExpanded(expanded === meal.id ? null : meal.id)}
-                className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left"
-              >
-                {meal.image_url ? (
-                  <img src={meal.image_url} alt="meal" className="w-14 h-14 rounded-xl object-cover flex-shrink-0 bg-gray-100" />
-                ) : (
-                  <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center text-2xl flex-shrink-0">🍴</div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-900">
-                    {meal.food_items.map(f => f.name).join(', ') || 'Meal'}
-                  </div>
-                  <div className="text-sm text-gray-400 mt-0.5">
-                    {new Date(meal.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="font-bold text-green-600">{meal.total_calories}</div>
-                  <div className="text-xs text-gray-400">kcal</div>
-                </div>
-                <div className={`text-gray-400 transition-transform ${expanded === meal.id ? 'rotate-180' : ''}`}>▾</div>
-              </button>
-
-              {expanded === meal.id && (
-                <div className="border-t border-gray-100 p-4">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-gray-400 text-xs uppercase">
-                        <th className="text-left pb-2">Food</th>
-                        <th className="text-right pb-2">Weight</th>
-                        <th className="text-right pb-2">Kcal</th>
-                        <th className="text-right pb-2">Protein</th>
-                        <th className="text-right pb-2">Carbs</th>
-                        <th className="text-right pb-2">Fat</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {meal.food_items.map(item => (
-                        <tr key={item.id}>
-                          <td className="py-2 font-medium capitalize">{item.name}</td>
-                          <td className="py-2 text-right text-gray-500">{item.weight_grams}g</td>
-                          <td className="py-2 text-right font-semibold text-green-600">{item.calories}</td>
-                          <td className="py-2 text-right text-blue-600">{item.protein}g</td>
-                          <td className="py-2 text-right text-amber-600">{item.carbs}g</td>
-                          <td className="py-2 text-right text-red-500">{item.fat}g</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            <MealHistoryItem
+              key={meal.id}
+              meal={meal}
+              expanded={expanded === meal.id}
+              onToggle={() => setExpanded(expanded === meal.id ? null : meal.id)}
+            />
           ))}
         </div>
       )}
     </div>
   );
+}
+
+function PageHeader({ count }: { count: number }) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wide text-green-700">History</p>
+        <h1 className="text-3xl font-bold text-gray-950 mt-1">Meal History</h1>
+        <p className="text-gray-500 mt-2">
+          {count === 1 ? '1 meal logged' : `${count} meals logged`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, accent }: { label: string; value: string; accent: string }) {
+  return (
+    <div className={`bg-white border border-gray-200 border-l-4 rounded-lg p-5 shadow-sm ${accent}`}>
+      <div className="text-2xl font-bold text-gray-950">{value}</div>
+      <div className="text-sm text-gray-500 mt-1">{label}</div>
+    </div>
+  );
+}
+
+function MealHistoryItem({
+  meal,
+  expanded,
+  onToggle,
+}: {
+  meal: MealLog;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const mealTitle = meal.food_items.map(f => f.name).join(', ') || 'Meal';
+  const macros = meal.food_items.reduce(
+    (sum, item) => ({
+      protein: sum.protein + Number(item.protein || 0),
+      carbs: sum.carbs + Number(item.carbs || 0),
+      fat: sum.fat + Number(item.fat || 0),
+    }),
+    { protein: 0, carbs: 0, fat: 0 },
+  );
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full grid grid-cols-[64px_1fr_auto] items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left"
+      >
+        {meal.image_url ? (
+          <img src={meal.image_url} alt="Meal" className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
+        ) : (
+          <div className="w-16 h-16 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black">
+            CV
+          </div>
+        )}
+
+        <div className="min-w-0">
+          <div className="font-semibold text-gray-950 capitalize truncate">{mealTitle}</div>
+          <div className="text-sm text-gray-500 mt-1">
+            {new Date(meal.created_at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </div>
+          <div className="hidden sm:flex gap-3 text-xs text-gray-500 mt-2">
+            <span>{roundOne(macros.protein)}g protein</span>
+            <span>{roundOne(macros.carbs)}g carbs</span>
+            <span>{roundOne(macros.fat)}g fat</span>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <div className="font-bold text-green-700">{meal.total_calories}</div>
+          <div className="text-xs text-gray-500">kcal</div>
+          <div className={`text-gray-400 text-lg transition-transform mt-1 ${expanded ? 'rotate-180' : ''}`}>
+            v
+          </div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-100 p-4 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left pb-3">Food</th>
+                <th className="text-right pb-3">Weight</th>
+                <th className="text-right pb-3">Kcal</th>
+                <th className="text-right pb-3">Protein</th>
+                <th className="text-right pb-3">Carbs</th>
+                <th className="text-right pb-3">Fat</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {meal.food_items.map(item => (
+                <tr key={item.id}>
+                  <td className="py-3 font-medium capitalize text-gray-950">{item.name}</td>
+                  <td className="py-3 text-right text-gray-500">{item.weight_grams}g</td>
+                  <td className="py-3 text-right font-semibold text-green-700">{item.calories}</td>
+                  <td className="py-3 text-right text-blue-700">{item.protein}g</td>
+                  <td className="py-3 text-right text-amber-700">{item.carbs}g</td>
+                  <td className="py-3 text-right text-red-600">{item.fat}g</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function roundOne(value: number) {
+  return Math.round(value * 10) / 10;
 }

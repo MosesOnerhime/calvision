@@ -3,6 +3,21 @@
 @tailwind utilities;
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-gray-50 text-gray-900 antialiased;
   font-family: 'Inter', system-ui, sans-serif;
+}
+
+::selection {
+  @apply bg-green-100 text-green-950;
+}
+
+input,
+button {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  @apply outline-none ring-2 ring-green-500 ring-offset-2;
 }
