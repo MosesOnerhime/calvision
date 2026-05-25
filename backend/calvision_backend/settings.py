@@ -1,16 +1,34 @@
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
+from urllib.parse import unquote, urlparse
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-dev-secret-key-change-in-prod')
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+def env_bool(name, default=False):
+    return os.getenv(name, str(default)).lower() in ('1', 'true', 'yes', 'on')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+def env_list(name, default=''):
+    return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
+
+
+DEBUG = env_bool('DEBUG', True)
+TESTING = 'test' in sys.argv
+SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-dev-secret-key-change-in-prod')
+
+if TESTING and len(SECRET_KEY) < 32:
+    SECRET_KEY = 'test-secret-key-for-calvision-tests-123456'
+
+if not DEBUG and SECRET_KEY == 'fallback-dev-secret-key-change-in-prod':
+    raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG=False.')
+
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -59,33 +77,47 @@ TEMPLATES = [
 WSGI_APPLICATION = 'calvision_backend.wsgi.application'
 
 # Database
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:password@localhost:5432/calvision')
+def database_from_url(database_url):
+    parsed = urlparse(database_url)
 
-import re
-url_pattern = re.match(
-    r'postgresql://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>.+)',
-    DATABASE_URL
+    if parsed.scheme in ('postgres', 'postgresql'):
+        return {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed.path.lstrip('/'),
+            'USER': unquote(parsed.username or ''),
+            'PASSWORD': unquote(parsed.password or ''),
+            'HOST': parsed.hostname or '',
+            'PORT': parsed.port or '',
+        }
+
+    if parsed.scheme == 'sqlite':
+        db_path = parsed.path.lstrip('/')
+        if db_path == ':memory:':
+            name = ':memory:'
+        elif db_path:
+            name = Path(db_path) if Path(db_path).is_absolute() else BASE_DIR / db_path
+        else:
+            name = BASE_DIR / 'db.sqlite3'
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': name,
+        }
+
+    return {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+
+
+DATABASE_URL = (
+    os.getenv('TEST_DATABASE_URL', 'sqlite:///test.sqlite3')
+    if TESTING
+    else os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3')
 )
 
-if url_pattern:
-    db = url_pattern.groupdict()
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': db['name'],
-            'USER': db['user'],
-            'PASSWORD': db['password'],
-            'HOST': db['host'],
-            'PORT': db['port'],
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+DATABASES = {
+    'default': database_from_url(DATABASE_URL),
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -129,10 +161,10 @@ SIMPLE_JWT = {
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-]
+CORS_ALLOWED_ORIGINS = env_list(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173',
+)
 CORS_ALLOW_CREDENTIALS = True
 
 # USDA

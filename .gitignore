@@ -13,6 +13,8 @@ frontend/.env
 
 # Model files (too large for GitHub)
 backend/predict/model_files/*.tflite
+backend/predict/model_files/*.pt
+backend/predict/model_files/*.pth
 backend/training/checkpoints/
 backend/training/food_images/
 
