@@ -34,7 +34,7 @@ export default function RegisterPage() {
       subtitle="Set up your profile and start turning food photos into nutrition records."
     >
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-300">
           {error}
         </div>
       )}
@@ -71,7 +71,7 @@ export default function RegisterPage() {
           placeholder="At least 8 characters"
         />
 
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:bg-gray-950 dark:border-gray-800 dark:text-gray-400">
           Your password must be at least 8 characters. Use something memorable and hard to guess.
         </div>
 
@@ -84,9 +84,9 @@ export default function RegisterPage() {
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
+      <p className="text-center text-sm text-gray-500 mt-6 dark:text-gray-400">
         Already have an account?{' '}
-        <Link to="/login" className="text-green-700 font-semibold hover:underline">
+        <Link to="/login" className="text-green-700 font-semibold hover:underline dark:text-green-400">
           Sign in
         </Link>
       </p>

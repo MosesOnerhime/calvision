@@ -45,27 +45,28 @@ export default function UploadPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6 items-start">
-        <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
           <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Analyze Meal</p>
-          <h1 className="text-3xl font-bold text-gray-950 mt-1">Upload a meal photo</h1>
-          <p className="text-gray-500 mt-3">
+          <h1 className="text-3xl font-bold text-gray-950 mt-1 dark:text-white">Upload a meal photo</h1>
+          <p className="text-gray-500 mt-3 dark:text-gray-400">
             Use a clear, well-lit image so the model has the best chance of identifying the food.
           </p>
 
-          <div className="mt-6 grid grid-cols-3 gap-3">
+          <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-gray-300">
             {['JPG', 'PNG', '1 image'].map(item => (
-              <div key={item} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center text-sm font-semibold text-gray-700">
-                {item}
+              <div key={item} className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-600" />
+                <span>{item}</span>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+        <section className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800">
           <div
             {...getRootProps()}
             className={`min-h-[360px] border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors flex items-center justify-center ${
-              isDragActive ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'
+              isDragActive ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'
             }`}
           >
             <input {...getInputProps()} />
@@ -73,13 +74,13 @@ export default function UploadPage() {
               <img src={preview} alt="Meal preview" className="max-h-[520px] w-full object-contain rounded-lg" />
             ) : (
               <div>
-                <div className="mx-auto h-14 w-14 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black">
+                <div className="mx-auto h-14 w-14 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black dark:bg-green-950 dark:border-green-900 dark:text-green-300">
                   +
                 </div>
-                <p className="text-gray-800 font-semibold mt-4">
+                <p className="text-gray-800 font-semibold mt-4 dark:text-gray-100">
                   {isDragActive ? 'Drop your meal photo here' : 'Drag and drop a meal photo, or click to select'}
                 </p>
-                <p className="text-gray-500 text-sm mt-2">Supports JPG and PNG</p>
+                <p className="text-gray-500 text-sm mt-2 dark:text-gray-400">Supports JPG and PNG</p>
               </div>
             )}
           </div>
@@ -88,7 +89,7 @@ export default function UploadPage() {
             <div className="mt-4 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => { setFile(null); setPreview(null); }}
-                className="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 Choose Different Photo
               </button>
@@ -113,13 +114,13 @@ export default function UploadPage() {
           )}
 
           {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-300">
               {error}
             </div>
           )}
 
           {loading && (
-            <p className="text-center text-gray-500 text-sm mt-3">
+            <p className="text-center text-gray-500 text-sm mt-3 dark:text-gray-400">
               Analyzing your meal. This may take a few seconds.
             </p>
           )}

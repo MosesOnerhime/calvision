@@ -50,10 +50,10 @@ export default function HistoryPage() {
       <div className="space-y-6">
         <PageHeader count={0} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse dark:bg-gray-900 dark:border-gray-800" />)}
         </div>
         <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse dark:bg-gray-900 dark:border-gray-800" />)}
         </div>
       </div>
     );
@@ -72,12 +72,12 @@ export default function HistoryPage() {
       )}
 
       {meals.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-10 text-center shadow-sm">
-          <div className="mx-auto h-12 w-12 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black">
+        <div className="bg-white border border-gray-200 rounded-lg p-10 text-center shadow-sm dark:bg-gray-900 dark:border-gray-800">
+          <div className="mx-auto h-12 w-12 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black dark:bg-green-950 dark:border-green-900 dark:text-green-300">
             +
           </div>
-          <h2 className="text-xl font-bold text-gray-950 mt-5">No meals logged yet</h2>
-          <p className="text-gray-500 mt-2">Analyze your first meal to start building a nutrition history.</p>
+          <h2 className="text-xl font-bold text-gray-950 mt-5 dark:text-white">No meals logged yet</h2>
+          <p className="text-gray-500 mt-2 dark:text-gray-400">Analyze your first meal to start building a nutrition history.</p>
           <button
             onClick={() => navigate('/upload')}
             className="mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-lg transition-colors"
@@ -106,8 +106,8 @@ function PageHeader({ count }: { count: number }) {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-green-700">History</p>
-        <h1 className="text-3xl font-bold text-gray-950 mt-1">Meal History</h1>
-        <p className="text-gray-500 mt-2">
+        <h1 className="text-3xl font-bold text-gray-950 mt-1 dark:text-white">Meal History</h1>
+        <p className="text-gray-500 mt-2 dark:text-gray-400">
           {count === 1 ? '1 meal logged' : `${count} meals logged`}
         </p>
       </div>
@@ -117,9 +117,9 @@ function PageHeader({ count }: { count: number }) {
 
 function StatCard({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className={`bg-white border border-gray-200 border-l-4 rounded-lg p-5 shadow-sm ${accent}`}>
-      <div className="text-2xl font-bold text-gray-950">{value}</div>
-      <div className="text-sm text-gray-500 mt-1">{label}</div>
+    <div className={`bg-white border border-gray-200 border-l-4 rounded-lg p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800 ${accent}`}>
+      <div className="text-2xl font-bold text-gray-950 dark:text-white">{value}</div>
+      <div className="text-sm text-gray-500 mt-1 dark:text-gray-400">{label}</div>
     </div>
   );
 }
@@ -144,22 +144,22 @@ function MealHistoryItem({
   );
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden dark:bg-gray-900 dark:border-gray-800">
       <button
         onClick={onToggle}
-        className="w-full grid grid-cols-[64px_1fr_auto] items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left"
+        className="w-full grid grid-cols-[64px_1fr_auto] items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left dark:hover:bg-gray-800"
       >
         {meal.image_url ? (
-          <img src={meal.image_url} alt="Meal" className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
+          <img src={meal.image_url} alt="Meal" className="w-16 h-16 rounded-lg object-cover bg-gray-100 dark:bg-gray-800" />
         ) : (
-          <div className="w-16 h-16 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black">
+          <div className="w-16 h-16 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black dark:bg-green-950 dark:border-green-900 dark:text-green-300">
             CV
           </div>
         )}
 
         <div className="min-w-0">
-          <div className="font-semibold text-gray-950 capitalize truncate">{mealTitle}</div>
-          <div className="text-sm text-gray-500 mt-1">
+          <div className="font-semibold text-gray-950 capitalize truncate dark:text-white">{mealTitle}</div>
+          <div className="text-sm text-gray-500 mt-1 dark:text-gray-400">
             {new Date(meal.created_at).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
@@ -168,7 +168,7 @@ function MealHistoryItem({
               minute: '2-digit',
             })}
           </div>
-          <div className="hidden sm:flex gap-3 text-xs text-gray-500 mt-2">
+          <div className="hidden sm:flex gap-3 text-xs text-gray-500 mt-2 dark:text-gray-400">
             <span>{roundOne(macros.protein)}g protein</span>
             <span>{roundOne(macros.carbs)}g carbs</span>
             <span>{roundOne(macros.fat)}g fat</span>
@@ -177,7 +177,7 @@ function MealHistoryItem({
 
         <div className="text-right">
           <div className="font-bold text-green-700">{meal.total_calories}</div>
-          <div className="text-xs text-gray-500">kcal</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">kcal</div>
           <div className={`text-gray-400 text-lg transition-transform mt-1 ${expanded ? 'rotate-180' : ''}`}>
             v
           </div>
@@ -185,10 +185,10 @@ function MealHistoryItem({
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 p-4 overflow-x-auto">
+        <div className="border-t border-gray-100 p-4 overflow-x-auto dark:border-gray-800">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="text-gray-500 text-xs uppercase tracking-wide">
+              <tr className="text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
                 <th className="text-left pb-3">Food</th>
                 <th className="text-right pb-3">Weight</th>
                 <th className="text-right pb-3">Kcal</th>
@@ -197,11 +197,11 @@ function MealHistoryItem({
                 <th className="text-right pb-3">Fat</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {meal.food_items.map(item => (
                 <tr key={item.id}>
-                  <td className="py-3 font-medium capitalize text-gray-950">{item.name}</td>
-                  <td className="py-3 text-right text-gray-500">{item.weight_grams}g</td>
+                  <td className="py-3 font-medium capitalize text-gray-950 dark:text-gray-100">{item.name}</td>
+                  <td className="py-3 text-right text-gray-500 dark:text-gray-400">{item.weight_grams}g</td>
                   <td className="py-3 text-right font-semibold text-green-700">{item.calories}</td>
                   <td className="py-3 text-right text-blue-700">{item.protein}g</td>
                   <td className="py-3 text-right text-amber-700">{item.carbs}g</td>

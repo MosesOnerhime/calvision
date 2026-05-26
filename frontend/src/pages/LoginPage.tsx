@@ -31,7 +31,7 @@ export default function LoginPage() {
       subtitle="Review your meal history, analyze new plates, and keep nutrition data in one place."
     >
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-300">
           {error}
         </div>
       )}
@@ -60,9 +60,9 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
+      <p className="text-center text-sm text-gray-500 mt-6 dark:text-gray-400">
         Do not have an account?{' '}
-        <Link to="/register" className="text-green-700 font-semibold hover:underline">
+        <Link to="/register" className="text-green-700 font-semibold hover:underline dark:text-green-400">
           Create one
         </Link>
       </p>
