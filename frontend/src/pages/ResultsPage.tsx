@@ -10,6 +10,8 @@ interface FoodItem {
   carbs: number;
   fat: number;
   confidence?: number;
+  raw_name?: string;
+  nutrition_source?: string;
 }
 
 interface Results {
@@ -61,7 +63,14 @@ export default function ResultsPage() {
         });
       }
       await api.post('/api/meals/save/', {
-        items: results.items,
+        items: results.items.map(({ name, weight_grams, calories, protein, carbs, fat }) => ({
+          name,
+          weight_grams,
+          calories,
+          protein,
+          carbs,
+          fat,
+        })),
         total_calories: results.total_calories,
         image_base64,
       });

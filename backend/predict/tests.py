@@ -48,8 +48,8 @@ class PredictionOverlayTests(APITestCase):
         payload = data_url.split(',', 1)[1]
         self.assertGreater(len(base64.b64decode(payload)), 0)
 
-    @patch('predict.views.get_model', return_value=None)
-    def test_predict_mock_response_includes_overlay_image(self, _mock_get_model):
+    @patch('predict.views.classify_food', return_value=[])
+    def test_predict_mock_response_includes_overlay_image(self, _mock_classify_food):
         response = self.client.post(
             reverse('predict'),
             {'image': _test_image_file()},
@@ -58,4 +58,24 @@ class PredictionOverlayTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['mock'])
+        self.assertTrue(response.data['overlay_image'].startswith('data:image/jpeg;base64,'))
+
+    @patch('predict.views.classify_food', return_value=[
+        {'name': 'Jollof Rice', 'raw_name': 'jollof_rice', 'confidence': 0.94},
+        {'name': 'Fried Rice', 'raw_name': 'fried_rice', 'confidence': 0.31},
+    ])
+    def test_predict_classifier_response_includes_confidence_and_overlay(self, _mock_classify_food):
+        response = self.client.post(
+            reverse('predict'),
+            {'image': _test_image_file()},
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['mock'])
+        self.assertEqual(response.data['prediction_type'], 'classification')
+        self.assertEqual(response.data['items'][0]['name'], 'Jollof Rice')
+        self.assertEqual(response.data['items'][0]['weight_grams'], 300)
+        self.assertEqual(response.data['items'][0]['confidence'], 94.0)
+        self.assertEqual(response.data['items'][0]['calories'], 435)
         self.assertTrue(response.data['overlay_image'].startswith('data:image/jpeg;base64,'))

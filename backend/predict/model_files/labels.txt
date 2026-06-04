@@ -1,0 +1,12 @@
+0 jollof_rice
+1 fried_rice
+2 egusi_soup
+3 pepper_soup
+4 pounded_yam
+5 eba
+6 moi_moi
+7 akara
+8 fried_plantain
+9 rice_and_stew
+10 banga_soup
+11 amala

@@ -11,6 +11,10 @@ _densities = None
 _fallback = None
 
 
+def normalize_food_name(food_name: str) -> str:
+    return food_name.replace('_', ' ').strip().lower()
+
+
 def load_densities():
     global _densities
     if _densities is None:
@@ -84,7 +88,7 @@ def fetch_nutrition_usda(food_name: str) -> dict:
 
 def _from_fallback(food_name: str) -> dict:
     fallback = load_fallback()
-    name_lower = food_name.lower()
+    name_lower = normalize_food_name(food_name)
     for key, val in fallback.items():
         if key in name_lower or name_lower in key:
             return val
@@ -96,8 +100,8 @@ def _from_fallback(food_name: str) -> dict:
     }
 
 
-def calculate_nutrition(food_name: str, weight_grams: float) -> dict:
-    per_100 = fetch_nutrition_usda(food_name)
+def calculate_nutrition(food_name: str, weight_grams: float, prefer_fallback: bool = False) -> dict:
+    per_100 = _from_fallback(food_name) if prefer_fallback else fetch_nutrition_usda(food_name)
     ratio = weight_grams / 100.0
     return {
         'name': food_name,
