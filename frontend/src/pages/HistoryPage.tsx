@@ -10,6 +10,8 @@ interface FoodItem {
   protein: number;
   carbs: number;
   fat: number;
+  confidence?: number | null;
+  nutrition_source?: string;
 }
 
 interface MealLog {
@@ -172,6 +174,9 @@ function MealHistoryItem({
             <span>{roundOne(macros.protein)}g protein</span>
             <span>{roundOne(macros.carbs)}g carbs</span>
             <span>{roundOne(macros.fat)}g fat</span>
+            {meal.food_items[0]?.confidence != null && (
+              <span>{meal.food_items[0].confidence}% confidence</span>
+            )}
           </div>
         </div>
 
@@ -186,7 +191,7 @@ function MealHistoryItem({
 
       {expanded && (
         <div className="border-t border-gray-100 p-4 overflow-x-auto dark:border-gray-800">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[840px] text-sm">
             <thead>
               <tr className="text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
                 <th className="text-left pb-3">Food</th>
@@ -195,6 +200,8 @@ function MealHistoryItem({
                 <th className="text-right pb-3">Protein</th>
                 <th className="text-right pb-3">Carbs</th>
                 <th className="text-right pb-3">Fat</th>
+                <th className="text-right pb-3">Confidence</th>
+                <th className="text-right pb-3">Source</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -206,6 +213,12 @@ function MealHistoryItem({
                   <td className="py-3 text-right text-blue-700">{item.protein}g</td>
                   <td className="py-3 text-right text-amber-700">{item.carbs}g</td>
                   <td className="py-3 text-right text-red-600">{item.fat}g</td>
+                  <td className="py-3 text-right text-gray-500 dark:text-gray-400">
+                    {item.confidence != null ? `${item.confidence}%` : '-'}
+                  </td>
+                  <td className="py-3 text-right text-gray-500 dark:text-gray-400">
+                    {item.nutrition_source ? formatNutritionSource(item.nutrition_source) : '-'}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -218,4 +231,8 @@ function MealHistoryItem({
 
 function roundOne(value: number) {
   return Math.round(value * 10) / 10;
+}
+
+function formatNutritionSource(source: string) {
+  return source.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }

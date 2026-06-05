@@ -23,6 +23,8 @@ class FoodItem(models.Model):
     protein = models.FloatField(default=0)
     carbs = models.FloatField(default=0)
     fat = models.FloatField(default=0)
+    confidence = models.FloatField(blank=True, null=True)
+    nutrition_source = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.weight_grams}g)"

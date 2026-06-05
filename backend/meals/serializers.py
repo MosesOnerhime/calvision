@@ -5,7 +5,17 @@ from .models import MealLog, FoodItem
 class FoodItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = FoodItem
-        fields = ['id', 'name', 'weight_grams', 'calories', 'protein', 'carbs', 'fat']
+        fields = [
+            'id',
+            'name',
+            'weight_grams',
+            'calories',
+            'protein',
+            'carbs',
+            'fat',
+            'confidence',
+            'nutrition_source',
+        ]
 
 
 class MealLogSerializer(serializers.ModelSerializer):

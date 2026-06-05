@@ -4,23 +4,13 @@ import requests
 from django.conf import settings
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DENSITIES_PATH = os.path.join(BASE_DIR, 'data', 'food_densities.json')
 FALLBACK_PATH = os.path.join(BASE_DIR, 'data', 'nutrition_fallback.json')
 
-_densities = None
 _fallback = None
 
 
 def normalize_food_name(food_name: str) -> str:
     return food_name.replace('_', ' ').strip().lower()
-
-
-def load_densities():
-    global _densities
-    if _densities is None:
-        with open(DENSITIES_PATH, 'r') as f:
-            _densities = json.load(f)
-    return _densities
 
 
 def load_fallback():
@@ -29,29 +19,6 @@ def load_fallback():
         with open(FALLBACK_PATH, 'r') as f:
             _fallback = json.load(f)
     return _fallback
-
-
-def get_density(food_name: str) -> float:
-    """Returns density in g/cm³. Defaults to 1.0 if not found."""
-    densities = load_densities()
-    name_lower = food_name.lower()
-    for key, val in densities.items():
-        if key in name_lower or name_lower in key:
-            return val['density_g_per_cm3']
-    return 1.0
-
-
-def pixel_area_to_weight(pixel_area: float, food_name: str, pixels_per_cm: float = 100.0) -> float:
-    """
-    Estimate weight from pixel area.
-    Assumes depth = 1 cm (fixed reference).
-    volume_cm3 = area_cm2 * depth_cm
-    weight_g = volume_cm3 * density
-    """
-    area_cm2 = pixel_area / (pixels_per_cm ** 2)
-    volume_cm3 = area_cm2 * 1.0  # assume 1 cm depth
-    density = get_density(food_name)
-    return round(volume_cm3 * density, 1)
 
 
 def fetch_nutrition_usda(food_name: str) -> dict:

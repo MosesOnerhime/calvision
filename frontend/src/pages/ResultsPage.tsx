@@ -14,6 +14,14 @@ interface FoodItem {
   nutrition_source?: string;
 }
 
+interface EditableFoodItem extends FoodItem {
+  original_weight_grams: number;
+  base_calories: number;
+  base_protein: number;
+  base_carbs: number;
+  base_fat: number;
+}
+
 interface Results {
   items: FoodItem[];
   total_calories: number;
@@ -30,6 +38,12 @@ const MACROS: Array<{ key: MacroKey; label: string; color: string; bg: string; k
   { key: 'fat', label: 'Fat', color: '#dc2626', bg: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300', kcalPerGram: 9 },
 ];
 
+const PORTION_PRESETS = [
+  { label: 'Small', multiplier: 0.75 },
+  { label: 'Medium', multiplier: 1 },
+  { label: 'Large', multiplier: 1.35 },
+];
+
 export default function ResultsPage() {
   const { state } = useLocation() as { state: { results: Results; imagePreview: string } };
   const navigate = useNavigate();
@@ -39,7 +53,14 @@ export default function ResultsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [imageMode, setImageMode] = useState<'ai' | 'original'>('ai');
-  const macroSummary = useMemo(() => buildMacroSummary(results?.items ?? []), [results?.items]);
+  const [adjustedItems, setAdjustedItems] = useState<EditableFoodItem[]>(() =>
+    (state?.results?.items ?? []).map(toEditableFoodItem)
+  );
+  const totalCalories = useMemo(
+    () => roundOne(adjustedItems.reduce((sum, item) => sum + Number(item.calories || 0), 0)),
+    [adjustedItems],
+  );
+  const macroSummary = useMemo(() => buildMacroSummary(adjustedItems), [adjustedItems]);
 
   if (!results) {
     return <Navigate to="/upload" replace />;
@@ -47,6 +68,12 @@ export default function ResultsPage() {
 
   const hasOverlay = Boolean(results.overlay_image);
   const activeImage = hasOverlay && imageMode === 'ai' ? results.overlay_image : imagePreview;
+
+  const updatePortion = (index: number, weight: number) => {
+    setAdjustedItems(items => items.map((item, itemIndex) => (
+      itemIndex === index ? recalculateForWeight(item, weight) : item
+    )));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -63,15 +90,17 @@ export default function ResultsPage() {
         });
       }
       await api.post('/api/meals/save/', {
-        items: results.items.map(({ name, weight_grams, calories, protein, carbs, fat }) => ({
+        items: adjustedItems.map(({ name, weight_grams, calories, protein, carbs, fat, confidence, nutrition_source }) => ({
           name,
           weight_grams,
           calories,
           protein,
           carbs,
           fat,
+          confidence,
+          nutrition_source,
         })),
-        total_calories: results.total_calories,
+        total_calories: totalCalories,
         image_base64,
       });
       setSaved(true);
@@ -134,8 +163,12 @@ export default function ResultsPage() {
           )}
 
           <div className="space-y-3">
-            {results.items.map((item, i) => (
-              <FoodItemCard key={`${item.name}-${i}`} item={item} />
+            {adjustedItems.map((item, i) => (
+              <FoodItemCard
+                key={`${item.name}-${i}`}
+                item={item}
+                onPortionChange={weight => updatePortion(i, weight)}
+              />
             ))}
           </div>
         </section>
@@ -144,7 +177,7 @@ export default function ResultsPage() {
           <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800">
             <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Calories</div>
             <div className="mt-1 text-4xl font-bold text-gray-950 dark:text-white">
-              {results.total_calories}
+              {totalCalories}
               <span className="text-base font-medium text-gray-500 ml-1 dark:text-gray-400">kcal</span>
             </div>
           </div>
@@ -184,7 +217,17 @@ export default function ResultsPage() {
   );
 }
 
-function FoodItemCard({ item }: { item: FoodItem }) {
+function FoodItemCard({
+  item,
+  onPortionChange,
+}: {
+  item: EditableFoodItem;
+  onPortionChange: (weight: number) => void;
+}) {
+  const selectedPreset = PORTION_PRESETS.find(preset => (
+    Math.round(item.weight_grams) === Math.round(item.original_weight_grams * preset.multiplier)
+  ))?.label;
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:bg-gray-900 dark:border-gray-800">
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -194,12 +237,58 @@ function FoodItemCard({ item }: { item: FoodItem }) {
             {item.weight_grams}g estimated portion
             {typeof item.confidence === 'number' ? ` - ${item.confidence}% confidence` : ''}
           </p>
+          {item.nutrition_source && (
+            <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
+              Source: {formatNutritionSource(item.nutrition_source)}
+            </p>
+          )}
         </div>
         <div className="text-right">
           <div className="text-xl font-bold text-green-700">{item.calories}</div>
           <div className="text-xs text-gray-500 dark:text-gray-400">kcal</div>
         </div>
       </div>
+
+      <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:bg-gray-950 dark:border-gray-800">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Portion size</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Adjust grams before saving.</div>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <span>Grams</span>
+            <input
+              type="number"
+              min={1}
+              step={5}
+              value={Math.round(item.weight_grams)}
+              onChange={e => onPortionChange(Number(e.target.value))}
+              className="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-right text-sm font-semibold text-gray-900 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+            />
+          </label>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {PORTION_PRESETS.map(preset => {
+            const weight = Math.round(item.original_weight_grams * preset.multiplier);
+            const active = selectedPreset === preset.label;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => onPortionChange(weight)}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                  active
+                    ? 'border-green-600 bg-green-600 text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-2">
         <MacroBadge label="Protein" value={item.protein} unit="g" color="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" />
         <MacroBadge label="Carbs" value={item.carbs} unit="g" color="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300" />
@@ -318,4 +407,33 @@ function buildMacroSummary(items: FoodItem[]) {
 
 function roundOne(value: number) {
   return Math.round(value * 10) / 10;
+}
+
+function toEditableFoodItem(item: FoodItem): EditableFoodItem {
+  return {
+    ...item,
+    original_weight_grams: item.weight_grams || 1,
+    base_calories: item.calories || 0,
+    base_protein: item.protein || 0,
+    base_carbs: item.carbs || 0,
+    base_fat: item.fat || 0,
+  };
+}
+
+function recalculateForWeight(item: EditableFoodItem, weight: number): EditableFoodItem {
+  const nextWeight = Math.max(1, Math.round(Number.isFinite(weight) ? weight : item.weight_grams));
+  const ratio = nextWeight / item.original_weight_grams;
+
+  return {
+    ...item,
+    weight_grams: nextWeight,
+    calories: roundOne(item.base_calories * ratio),
+    protein: roundOne(item.base_protein * ratio),
+    carbs: roundOne(item.base_carbs * ratio),
+    fat: roundOne(item.base_fat * ratio),
+  };
+}
+
+function formatNutritionSource(source: string) {
+  return source.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }

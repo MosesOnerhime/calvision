@@ -1,8 +1,8 @@
 # CalVision - Food Recognition & Calorie Estimation
 
 CalVision is a full-stack app for logging meals from photos. Users can upload a
-meal image, receive detected food items with estimated calories/macros, and save
-the result to their meal history.
+meal image, receive Nigerian-food classification with estimated calories/macros,
+and save the result to their meal history.
 
 ## Quick Start (Docker)
 
@@ -68,15 +68,21 @@ Frontend variables:
 
 ## AI Model Note
 
-The Mask R-CNN model loads automatically via `torchvision` with pretrained COCO
-weights. The weights are downloaded by Torchvision on first use if they are not
-already cached locally.
+CalVision uses a Teachable Machine TensorFlow Lite classifier. Put the exported
+model files here:
 
-If PyTorch is not available or the model fails to load, the system falls back to
-realistic mock data so the frontend still works fully during development.
+```
+backend/predict/model_files/model.tflite
+backend/predict/model_files/labels.txt
+```
 
-To use a food-specific fine-tuned model, update
-`backend/predict/model_loader.py` to load your custom checkpoint.
+The classifier identifies the main dish in the uploaded photo. It is not an
+object detector, so the AI output image draws a labeled whole-image/plate box
+rather than true per-food-item boxes.
+
+If no TFLite runtime is installed, the app falls back to realistic mock data so
+the frontend still works during development. Docker/Linux installs LiteRT via
+`ai-edge-litert`; Windows Python 3.13 uses TensorFlow.
 
 ## Project Structure
 
@@ -86,8 +92,8 @@ calvision/
 |   |-- calvision_backend/    # Django settings, URLs, WSGI
 |   |-- users/                # Auth, custom user model
 |   |-- meals/                # Meal logs, food items
-|   |-- predict/              # AI inference endpoint
-|   `-- data/                 # food_densities.json, nutrition_fallback.json
+|   |-- predict/              # AI inference endpoint and TFLite classifier
+|   `-- data/                 # nutrition_fallback.json
 `-- frontend/
     `-- src/
         |-- api/              # Axios instance + interceptors

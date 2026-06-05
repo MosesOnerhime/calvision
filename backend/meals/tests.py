@@ -29,6 +29,8 @@ class MealApiTests(APITestCase):
                     'protein': 2.8,
                     'carbs': 34.1,
                     'fat': 0.3,
+                    'confidence': 94.0,
+                    'nutrition_source': 'curated_african_food_fallback',
                 },
                 {
                     'name': 'chicken breast',
@@ -48,6 +50,8 @@ class MealApiTests(APITestCase):
         self.assertEqual(FoodItem.objects.count(), 2)
         self.assertEqual(response.data['total_calories'], 324)
         self.assertEqual(len(response.data['food_items']), 2)
+        self.assertEqual(response.data['food_items'][0]['confidence'], 94.0)
+        self.assertEqual(response.data['food_items'][0]['nutrition_source'], 'curated_african_food_fallback')
 
     def test_history_only_returns_authenticated_users_meals(self):
         other_user = User.objects.create_user(
