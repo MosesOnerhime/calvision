@@ -17,6 +17,8 @@ backend/predict/model_files/*.pt
 backend/predict/model_files/*.pth
 backend/training/checkpoints/
 backend/training/food_images/
+backend/validation_set/
+backend/predict/evaluation_reports/
 
 # Database
 *.sqlite3
