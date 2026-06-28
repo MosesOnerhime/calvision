@@ -14,7 +14,7 @@ export default function ThemeToggle({ variant = 'default' }: { variant?: 'defaul
       type="button"
       onClick={toggleTheme}
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-      className={`h-10 px-3 rounded-lg border text-sm font-semibold transition-colors ${classes}`}
+      className={`h-9 sm:h-10 px-2.5 sm:px-3 rounded-lg border text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${classes}`}
     >
       {isDark ? 'Light' : 'Dark'}
     </button>

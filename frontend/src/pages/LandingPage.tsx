@@ -13,19 +13,19 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-gray-950 dark:bg-gray-950 dark:text-gray-100">
       <header className="absolute top-0 left-0 right-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between text-white">
-          <Link to="/" className="flex items-center gap-3">
-            <span className="h-9 w-9 rounded-lg bg-white text-green-700 font-black flex items-center justify-center">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-3 text-white">
+          <Link to="/" className="min-w-0 flex items-center gap-2.5 sm:gap-3">
+            <span className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-white text-green-700 text-sm sm:text-base font-black flex shrink-0 items-center justify-center">
               CV
             </span>
-            <span className="font-bold text-xl tracking-tight">CalVision</span>
+            <span className="font-bold text-lg sm:text-xl tracking-tight truncate">CalVision</span>
           </Link>
-          <nav className="flex items-center gap-2">
+          <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <ThemeToggle variant="hero" />
             {user ? (
               <Link
                 to="/dashboard"
-                className="bg-white text-green-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors"
+                className="bg-white text-green-800 font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-green-50 transition-colors whitespace-nowrap text-sm sm:text-base"
               >
                 Dashboard
               </Link>
@@ -33,13 +33,13 @@ export default function LandingPage() {
               <>
                 <Link
                   to="/login"
-                  className="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                  className="text-white font-semibold px-2.5 sm:px-4 py-2 rounded-lg hover:bg-white/10 transition-colors whitespace-nowrap text-sm sm:text-base"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-white text-green-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors"
+                  className="hidden min-[430px]:inline-flex bg-white text-green-800 font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-green-50 transition-colors whitespace-nowrap text-sm sm:text-base"
                 >
                   Get Started
                 </Link>
@@ -49,18 +49,18 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <section className="relative min-h-[84vh] flex items-center overflow-hidden">
+      <section className="relative min-h-[86vh] flex items-center overflow-hidden">
         <img
           src="/landing-meal.jpeg"
           alt="A plate of jollof rice and chicken ready for nutrition analysis"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-black/55" />
-        <div className="relative z-10 max-w-6xl mx-auto px-4 pt-20 pb-16 w-full">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 pt-24 sm:pt-20 pb-14 sm:pb-16 w-full">
           <div className="max-w-2xl text-white">
-            <p className="text-sm font-semibold uppercase tracking-wide text-green-200">AI meal analysis</p>
-            <h1 className="text-5xl sm:text-6xl font-black tracking-tight mt-4">CalVision</h1>
-            <p className="text-xl text-gray-100 mt-5 leading-8">
+            <p className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-green-200">AI meal analysis</p>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight mt-3 sm:mt-4">CalVision</h1>
+            <p className="text-lg sm:text-xl text-gray-100 mt-4 sm:mt-5 leading-7 sm:leading-8">
               Upload a food photo, review AI output, compare macro ratios, and save meals into a clean nutrition history.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
