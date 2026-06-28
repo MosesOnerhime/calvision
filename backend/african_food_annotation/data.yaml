@@ -4,3 +4,4 @@ names:
   2: chicken
 path: .
 train: train.txt
+val: val.txt

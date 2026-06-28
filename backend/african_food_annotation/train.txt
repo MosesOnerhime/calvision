@@ -78,23 +78,3 @@ data/images/train/how-to-parboil-rice-for-jollof-1704518301.jpg
 data/images/train/hq720.jpg
 data/images/train/img1.jpg
 data/images/train/img2.jpg
-data/images/train/img_8514.jpg
-data/images/train/img_9901_96176.jpg
-data/images/train/jollof-833x1024.jpg
-data/images/train/jollof-rice-1.jpg
-data/images/train/jollof-rice-recipe-23.jpg
-data/images/train/jollof-rice-with-chicken-1-768x1024.jpg
-data/images/train/jollof.jpg
-data/images/train/jollof_rice-1.jpg
-data/images/train/jollof_rice_with_fried_84889_16x9.jpg
-data/images/train/l-intro-1662692798.jpg
-data/images/train/maxresdefault-1.jpg
-data/images/train/maxresdefault.jpg
-data/images/train/nigerian-jollof-1.jpg
-data/images/train/nigerian-jollof-rice-5176650-diana-andrews-2023-b288a4828ab5.jpg
-data/images/train/nigerian-jollof-rice-landscape.jpg
-data/images/train/poster_06a96b3f9d584829960a3f4f6cb459c1.jpg
-data/images/train/step_5-pbbtserif271gdqce1t24nav1h5rpjogr8vyxh3ov4.jpg
-data/images/train/th (1).jpeg
-data/images/train/th (2).jpeg
-data/images/train/th.jpeg
