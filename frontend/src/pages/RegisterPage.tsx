@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api/axios';
 import { AuthField, AuthShell } from '../components/AuthShell';
 import { useAuth } from '../context/AuthContext';
 
 export default function RegisterPage() {
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', password: '' });
   const [error, setError] = useState('');
@@ -16,8 +15,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/api/auth/register/', form);
-      await login(form.email, form.password);
+      await register(form);
       navigate('/dashboard');
     } catch (err: any) {
       const data = err.response?.data;

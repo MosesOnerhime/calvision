@@ -37,6 +37,7 @@ class AuthApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access', response.data)
         self.assertIn('refresh', response.data)
+        self.assertEqual(response.data['user']['email'], 'grace@example.com')
 
     def test_me_requires_authentication(self):
         response = self.client.get(reverse('me'))
