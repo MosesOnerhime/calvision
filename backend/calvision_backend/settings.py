@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
+from corsheaders.defaults import default_headers
 from urllib.parse import unquote, urlparse
 
 load_dotenv()
@@ -187,6 +188,9 @@ CORS_ALLOWED_ORIGIN_REGEXES = env_list(
     'CORS_ALLOWED_ORIGIN_REGEXES',
     r'^https://.*\.vercel\.app$' if DEBUG else '',
 )
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'ngrok-skip-browser-warning',
+]
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
