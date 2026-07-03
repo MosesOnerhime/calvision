@@ -12,6 +12,7 @@ interface FoodItem {
   confidence?: number;
   raw_name?: string;
   nutrition_source?: string;
+  portion_estimation_method?: string;
 }
 
 interface EditableFoodItem extends FoodItem {
@@ -266,6 +267,11 @@ function FoodItemCard({
           {item.nutrition_source && (
             <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
               Source: {formatNutritionSource(item.nutrition_source)}
+            </p>
+          )}
+          {item.portion_estimation_method && (
+            <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
+              Portion: {formatNutritionSource(item.portion_estimation_method)}
             </p>
           )}
         </div>

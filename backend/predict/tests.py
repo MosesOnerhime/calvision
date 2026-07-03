@@ -10,7 +10,7 @@ from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .views import render_detection_overlay
+from .views import estimate_portion_from_mask_area, render_detection_overlay
 
 
 User = get_user_model()
@@ -121,6 +121,25 @@ class PredictionOverlayTests(APITestCase):
         self.assertEqual(response.data['items'][0]['raw_name'], 'jollof_rice')
         self.assertEqual(response.data['items'][0]['confidence'], 91.0)
         self.assertEqual(response.data['items'][0]['nutrition_source'], 'yolo_segmentation_curated_african_food_fallback')
+        self.assertEqual(response.data['items'][0]['portion_estimation_method'], 'mask_area_estimate')
         self.assertEqual(len(response.data['detections']), 2)
         self.assertTrue(response.data['overlay_image'].startswith('data:image/jpeg;base64,'))
         mock_classify_food.assert_not_called()
+
+    def test_mask_area_portion_estimate_scales_from_visible_mask(self):
+        mask = np.zeros((100, 100), dtype=np.float32)
+        mask[:50, :50] = 1
+
+        weight, method = estimate_portion_from_mask_area('jollof_rice', [{'mask': mask}])
+
+        self.assertEqual(method, 'mask_area_estimate')
+        self.assertEqual(weight, 275.6)
+
+    def test_mask_area_portion_estimate_falls_back_for_tiny_mask(self):
+        mask = np.zeros((100, 100), dtype=np.float32)
+        mask[0, 0] = 1
+
+        weight, method = estimate_portion_from_mask_area('jollof_rice', [{'mask': mask}])
+
+        self.assertEqual(method, 'default_portion_no_valid_mask_area')
+        self.assertEqual(weight, 300)
