@@ -1,0 +1,7 @@
+names:
+  0: jollof_rice
+  1: fried_plantain
+  2: chicken
+path: .
+train: train.txt
+val: val.txt

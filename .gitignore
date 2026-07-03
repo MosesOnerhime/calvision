@@ -16,10 +16,17 @@ backend/predict/model_files/*.tflite
 backend/predict/model_files/*.pt
 backend/predict/model_files/*.pth
 !backend/predict/model_files/model.tflite
+!backend/predict/model_files/yolo_food_seg.pt
 backend/training/checkpoints/
 backend/training/food_images/
 backend/validation_set/
 backend/predict/evaluation_reports/
+backend/african_food_annotation/*_abs.txt
+backend/african_food_annotation/data_resolved.yaml
+backend/african_food_annotation/data_with_val.yaml
+backend/african_food_annotation/**/*.cache
+backend/yolo*.pt
+runs/
 
 # Database
 *.sqlite3

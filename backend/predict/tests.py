@@ -48,8 +48,9 @@ class PredictionOverlayTests(APITestCase):
         payload = data_url.split(',', 1)[1]
         self.assertGreater(len(base64.b64decode(payload)), 0)
 
+    @patch('predict.views.segment_food', return_value=[])
     @patch('predict.views.classify_food', return_value=[])
-    def test_predict_mock_response_includes_overlay_image(self, _mock_classify_food):
+    def test_predict_mock_response_includes_overlay_image(self, _mock_classify_food, _mock_segment_food):
         response = self.client.post(
             reverse('predict'),
             {'image': _test_image_file()},
@@ -60,11 +61,12 @@ class PredictionOverlayTests(APITestCase):
         self.assertTrue(response.data['mock'])
         self.assertTrue(response.data['overlay_image'].startswith('data:image/jpeg;base64,'))
 
+    @patch('predict.views.segment_food', return_value=[])
     @patch('predict.views.classify_food', return_value=[
         {'name': 'Jollof Rice', 'raw_name': 'jollof_rice', 'confidence': 0.94},
         {'name': 'Fried Rice', 'raw_name': 'fried_rice', 'confidence': 0.31},
     ])
-    def test_predict_classifier_response_includes_confidence_and_overlay(self, _mock_classify_food):
+    def test_predict_classifier_response_includes_confidence_and_overlay(self, _mock_classify_food, _mock_segment_food):
         response = self.client.post(
             reverse('predict'),
             {'image': _test_image_file()},
@@ -79,3 +81,46 @@ class PredictionOverlayTests(APITestCase):
         self.assertEqual(response.data['items'][0]['confidence'], 94.0)
         self.assertEqual(response.data['items'][0]['calories'], 435)
         self.assertTrue(response.data['overlay_image'].startswith('data:image/jpeg;base64,'))
+
+    @patch('predict.views.classify_food')
+    @patch('predict.views.segment_food')
+    def test_predict_yolo_segmentation_response_uses_real_detections(
+        self,
+        mock_segment_food,
+        mock_classify_food,
+    ):
+        mask = np.zeros((80, 80), dtype=np.float32)
+        mask[20:60, 20:60] = 1
+        mock_segment_food.return_value = [
+            {
+                'name': 'Jollof Rice',
+                'raw_name': 'jollof_rice',
+                'confidence': 0.91,
+                'box': [20, 20, 60, 60],
+                'mask': mask,
+            },
+            {
+                'name': 'Fried Plantain',
+                'raw_name': 'fried_plantain',
+                'confidence': 0.77,
+                'box': [70, 20, 120, 60],
+                'mask': mask,
+            },
+        ]
+
+        response = self.client.post(
+            reverse('predict'),
+            {'image': _test_image_file()},
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['mock'])
+        self.assertEqual(response.data['prediction_type'], 'yolo_segmentation')
+        self.assertEqual(len(response.data['items']), 2)
+        self.assertEqual(response.data['items'][0]['raw_name'], 'jollof_rice')
+        self.assertEqual(response.data['items'][0]['confidence'], 91.0)
+        self.assertEqual(response.data['items'][0]['nutrition_source'], 'yolo_segmentation_curated_african_food_fallback')
+        self.assertEqual(len(response.data['detections']), 2)
+        self.assertTrue(response.data['overlay_image'].startswith('data:image/jpeg;base64,'))
+        mock_classify_food.assert_not_called()

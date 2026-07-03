@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from .african_food_classifier import classify_food, get_classifier_status
 from .nutrition import calculate_nutrition
+from .yolo_food_segmenter import get_yolo_status, segment_food
 
 PORTION_SIZES = {
     'jollof_rice': 300,
@@ -34,6 +35,7 @@ PORTION_SIZES = {
     'oha_soup': 250,
     'catfish_pepper_soup': 300,
     'amala': 350,
+    'chicken': 150,
 }
 
 DEFAULT_PORTION = 250
@@ -67,11 +69,30 @@ def predict(request):
     try:
         image_bytes = image_file.read()
         img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        yolo_detections = segment_food(image_bytes, min_confidence=0.25)
+
+        if yolo_detections:
+            items = nutrition_items_from_detections(yolo_detections)
+            total_calories = round(sum(item['calories'] for item in items), 1)
+            return Response({
+                'items': items,
+                'total_calories': total_calories,
+                'mock': False,
+                'prediction_type': 'yolo_segmentation',
+                'overlay_image': render_detection_overlay(img, yolo_detections),
+                'detections': serialize_detections(yolo_detections),
+            })
+
         predictions = classify_food(image_bytes, top_k=3, min_confidence=0.25)
 
         if not predictions:
             classifier_status = get_classifier_status()
-            reason = 'Classifier not loaded' if not classifier_status.ready else 'Low confidence classification'
+            yolo_status = get_yolo_status()
+            reason = 'No YOLO detections and low confidence classification'
+            if not yolo_status.ready:
+                reason = f'YOLO unavailable: {yolo_status.error}. {reason}'
+            if not classifier_status.ready:
+                reason = f'{reason}. Classifier not loaded'
             if classifier_status.error:
                 reason = f"{reason}: {classifier_status.error}"
             return Response(_mock_response_with_overlay(img, reason=reason))
@@ -142,6 +163,40 @@ def classification_detection(img: Image.Image, name: str, confidence: float, wei
         'mask': mask,
         'note': f"Estimated portion: {weight_grams}g",
     }
+
+
+def nutrition_items_from_detections(detections: list[dict]) -> list[dict]:
+    grouped: dict[str, list[dict]] = {}
+    for detection in detections:
+        raw_name = detection.get('raw_name') or detection['name'].lower().replace(' ', '_')
+        grouped.setdefault(raw_name, []).append(detection)
+
+    items = []
+    for raw_name, raw_detections in grouped.items():
+        display_name = raw_detections[0]['name']
+        weight = PORTION_SIZES.get(raw_name, DEFAULT_PORTION)
+        nutrition = calculate_nutrition(display_name, weight, prefer_fallback=True)
+        avg_confidence = sum(item.get('confidence', 0) for item in raw_detections) / len(raw_detections)
+        nutrition['confidence'] = round(avg_confidence * 100, 1)
+        nutrition['raw_name'] = raw_name
+        nutrition['nutrition_source'] = 'yolo_segmentation_curated_african_food_fallback'
+        nutrition['detection_count'] = len(raw_detections)
+        items.append(nutrition)
+
+    items.sort(key=lambda item: item.get('confidence', 0), reverse=True)
+    return items
+
+
+def serialize_detections(detections: list[dict]) -> list[dict]:
+    serialized = []
+    for detection in detections:
+        serialized.append({
+            'name': detection['name'],
+            'raw_name': detection.get('raw_name'),
+            'confidence': round(detection.get('confidence', 0) * 100, 1),
+            'box': [round(float(value), 2) for value in detection['box']],
+        })
+    return serialized
 
 
 def render_detection_overlay(img: Image.Image, detections: list[dict]) -> str:
