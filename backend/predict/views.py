@@ -39,26 +39,6 @@ PORTION_SIZES = {
 }
 
 DEFAULT_PORTION = 250
-AREA_REFERENCE_RATIOS = {
-    'jollof_rice': 0.28,
-    'fried_rice': 0.28,
-    'egusi_soup': 0.24,
-    'pepper_soup': 0.24,
-    'pounded_yam': 0.20,
-    'eba': 0.20,
-    'fufu': 0.20,
-    'amala': 0.20,
-    'moi_moi': 0.14,
-    'akara': 0.10,
-    'suya': 0.14,
-    'fried_plantain': 0.12,
-    'chicken': 0.14,
-}
-MIN_MASK_AREA_RATIO = 0.003
-MAX_MASK_AREA_RATIO = 0.85
-AREA_WEIGHT_EXPONENT = 0.75
-MIN_PORTION_MULTIPLIER = 0.15
-MAX_PORTION_MULTIPLIER = 2.5
 
 MOCK_RESPONSE = {
     "items": [
@@ -194,55 +174,17 @@ def nutrition_items_from_detections(detections: list[dict]) -> list[dict]:
     items = []
     for raw_name, raw_detections in grouped.items():
         display_name = raw_detections[0]['name']
-        weight, portion_method = estimate_portion_from_mask_area(raw_name, raw_detections)
+        weight = PORTION_SIZES.get(raw_name, DEFAULT_PORTION)
         nutrition = calculate_nutrition(display_name, weight, prefer_fallback=True)
         avg_confidence = sum(item.get('confidence', 0) for item in raw_detections) / len(raw_detections)
         nutrition['confidence'] = round(avg_confidence * 100, 1)
         nutrition['raw_name'] = raw_name
         nutrition['nutrition_source'] = 'yolo_segmentation_curated_african_food_fallback'
-        nutrition['portion_estimation_method'] = portion_method
         nutrition['detection_count'] = len(raw_detections)
         items.append(nutrition)
 
     items.sort(key=lambda item: item.get('confidence', 0), reverse=True)
     return items
-
-
-def estimate_portion_from_mask_area(raw_name: str, detections: list[dict]) -> tuple[float, str]:
-    default_weight = PORTION_SIZES.get(raw_name, DEFAULT_PORTION)
-    reference_ratio = AREA_REFERENCE_RATIOS.get(raw_name, 0.20)
-    estimated_weights = []
-
-    for detection in detections:
-        ratio = mask_area_ratio(detection.get('mask'))
-        if ratio is None or ratio < MIN_MASK_AREA_RATIO or ratio > MAX_MASK_AREA_RATIO:
-            continue
-
-        area_scale = (ratio / reference_ratio) ** AREA_WEIGHT_EXPONENT
-        estimated_weights.append(default_weight * area_scale)
-
-    if not estimated_weights:
-        return default_weight, 'default_portion_no_valid_mask_area'
-
-    estimated_weight = round(sum(estimated_weights), 1)
-    min_reasonable = max(10, default_weight * MIN_PORTION_MULTIPLIER)
-    max_reasonable = default_weight * MAX_PORTION_MULTIPLIER
-
-    if estimated_weight < min_reasonable or estimated_weight > max_reasonable:
-        return default_weight, 'default_portion_area_out_of_range'
-
-    return estimated_weight, 'mask_area_estimate'
-
-
-def mask_area_ratio(mask) -> float | None:
-    if mask is None:
-        return None
-
-    mask_array = np.asarray(mask)
-    if mask_array.size == 0:
-        return None
-
-    return float(np.count_nonzero(mask_array > 0.5) / mask_array.size)
 
 
 def serialize_detections(detections: list[dict]) -> list[dict]:
