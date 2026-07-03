@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--imgsz', type=int, default=640)
     parser.add_argument('--batch', type=int, default=8)
     parser.add_argument('--device', default=None, help='Use 0 for GPU, cpu for CPU, or omit for auto.')
+    parser.add_argument('--workers', type=int, default=0, help='DataLoader workers. Use 0 on Windows if memory is tight.')
     args = parser.parse_args()
 
     try:
@@ -45,6 +46,7 @@ def main():
             'epochs': args.epochs,
             'imgsz': args.imgsz,
             'batch': args.batch,
+            'workers': args.workers,
         }
         if args.device:
             kwargs['device'] = args.device
@@ -61,7 +63,7 @@ def main():
         model_path = MODEL_OUTPUT_PATH
     model = YOLO(str(model_path))
     val_data_path = _data_yaml_with_validation_fallback(data_path)
-    kwargs = {'data': str(val_data_path), 'imgsz': args.imgsz}
+    kwargs = {'data': str(val_data_path), 'imgsz': args.imgsz, 'workers': args.workers}
     if args.device:
         kwargs['device'] = args.device
     model.val(**kwargs)
