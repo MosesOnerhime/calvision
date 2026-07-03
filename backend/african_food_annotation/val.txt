@@ -1,20 +1,38 @@
-data/images/train/img_8514.jpg
-data/images/train/img_9901_96176.jpg
-data/images/train/jollof-833x1024.jpg
-data/images/train/jollof-rice-1.jpg
-data/images/train/jollof-rice-recipe-23.jpg
-data/images/train/jollof-rice-with-chicken-1-768x1024.jpg
-data/images/train/jollof.jpg
-data/images/train/jollof_rice-1.jpg
-data/images/train/jollof_rice_with_fried_84889_16x9.jpg
-data/images/train/l-intro-1662692798.jpg
-data/images/train/maxresdefault-1.jpg
-data/images/train/maxresdefault.jpg
+data/images/train/Nigerian-authentic-smoky-jollof-rice-recipe-img_5.jpg
+data/images/train/Nigerian-authentic-smoky-jollof-rice-recipe-img_6.jpg
+data/images/train/Nigerian-Egusi-Soup.jpg
+data/images/train/Nigerian-Egusi-Soup-1 (1).jpg
+data/images/train/Nigerian-Egusi-Soup-1.jpg
+data/images/train/Nigerian-Egusi-Soup-2.jpg
+data/images/train/Nigerian-Egusi-Soup-3.jpg
+data/images/train/Nigerian-Egusi-Soup-and-garri.jpg
+data/images/train/Nigerian-Egusi-Soup-main-photo-1-225x225.jpg
+data/images/train/Nigerian-Egusi-Soup-square.jpg
 data/images/train/nigerian-jollof-1.jpg
+data/images/train/Nigerian-Jollof-Rice.jpg
+data/images/train/Nigerian-Jollof-Rice-1.jpg
+data/images/train/Nigerian-Jollof-Rice-2.jpg
 data/images/train/nigerian-jollof-rice-5176650-diana-andrews-2023-b288a4828ab5.jpg
+data/images/train/Nigerian-Jollof-Rice-Feature.jpg
 data/images/train/nigerian-jollof-rice-landscape.jpg
+data/images/train/Nigerian-Jollof-Rice-Recipe-1-1200-819x1024.jpg
+data/images/train/Nigerian-jollof-rice-recipe-img-1.jpg
+data/images/train/Nigerian-Jollof-Rice-Vertical-5.jpg
+data/images/train/Nigerian-soups_Egusi-soup-recipe (1).jpg
+data/images/train/Nigerian-soups_Egusi-soup-recipe.jpg
+data/images/train/photo.jpg
 data/images/train/poster_06a96b3f9d584829960a3f4f6cb459c1.jpg
+data/images/train/Rice-2.jpg
+data/images/train/sddefault (1).jpg
+data/images/train/sddefault (2).jpg
+data/images/train/sddefault (3).jpg
+data/images/train/sddefault.jpg
+data/images/train/second-jpg_large (1).jpg
+data/images/train/Simply-Recipes-Jollof-Rice-LEAD-6-5a93db14a0ac461f88dc557514.jpg
+data/images/train/Spicy-Jollof-Rice-Recipe-9.jpg
 data/images/train/step_5-pbbtserif271gdqce1t24nav1h5rpjogr8vyxh3ov4.jpg
+data/images/train/stock-photo-nigerian-egusi-soup-with-fish-and-beef-in-a-whit.jpg
 data/images/train/th (1).jpeg
 data/images/train/th (2).jpeg
 data/images/train/th.jpeg
+data/images/train/variations-of-egusi-soup-1667994913.jpg

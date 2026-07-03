@@ -2,6 +2,9 @@ names:
   0: jollof_rice
   1: fried_plantain
   2: chicken
+  3: egusi_soup
+  4: eba
+  5: pounded_yam
 path: .
 train: train.txt
 val: val.txt

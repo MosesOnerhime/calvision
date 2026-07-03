@@ -1,8 +1,8 @@
 # CalVision - Food Recognition & Calorie Estimation
 
 CalVision is a full-stack app for logging meals from photos. Users can upload a
-meal image, receive Nigerian-food classification with estimated calories/macros,
-and save the result to their meal history.
+meal image, receive Nigerian-food segmentation/classification with estimated
+calories/macros, and save the result to their meal history.
 
 ## Quick Start (Docker)
 
@@ -66,23 +66,136 @@ Frontend variables:
 |----------|-------------|
 | `VITE_API_URL` | Backend API origin, for example `http://localhost:8000` |
 
-## AI Model Note
+## AI Pipeline
 
-CalVision uses a Teachable Machine TensorFlow Lite classifier. Put the exported
-model files here:
+CalVision uses a YOLO instance segmentation model first. It detects visible
+food regions, returns bounding boxes and segmentation masks, and the backend
+draws the colored AI output overlay shown on the results page.
+
+The trained YOLO model lives here:
+
+```
+backend/predict/model_files/yolo_food_seg.pt
+```
+
+The current segmentation classes are:
+
+```
+jollof_rice
+fried_plantain
+chicken
+egusi_soup
+eba
+pounded_yam
+```
+
+If YOLO is unavailable or detects no food regions, CalVision falls back to the
+Teachable Machine TensorFlow Lite classifier. The classifier files live here:
 
 ```
 backend/predict/model_files/model.tflite
 backend/predict/model_files/labels.txt
 ```
 
-The classifier identifies the main dish in the uploaded photo. It is not an
-object detector, so the AI output image draws a labeled whole-image/plate box
-rather than true per-food-item boxes.
+The TFLite classifier identifies the main dish in the uploaded photo. It is not
+an object detector, so it is used only as a fallback path.
 
-If no TFLite runtime is installed, the app falls back to realistic mock data so
-the frontend still works during development. Docker/Linux installs LiteRT via
-`ai-edge-litert`; Windows Python 3.13 uses TensorFlow.
+## CVAT Annotation Workflow
+
+The YOLO segmentation dataset was prepared with CVAT:
+
+1. A CVAT project was created for Nigerian/African food segmentation.
+2. Labels were added for `jollof_rice`, `fried_plantain`, `chicken`,
+   `egusi_soup`, `eba`, and `pounded_yam`.
+3. Food images were uploaded into a CVAT task.
+4. Polygon annotations were drawn around each visible food item in every image.
+5. The completed task was exported as **YOLO Ultralytics Segmentation**.
+6. The exported files were placed in:
+
+```
+backend/african_food_annotation/
+```
+
+The dataset is arranged as:
+
+```
+backend/african_food_annotation/
+|-- data.yaml
+|-- train.txt
+|-- val.txt
+|-- data/
+|   |-- images/train/
+|   `-- labels/train/
+`-- labels/train/
+```
+
+The project uses an 80/20 train-validation split. The latest split contains 154
+training images and 38 validation images.
+
+## YOLO Training And Evaluation
+
+YOLO dependencies are kept separate from the lightweight backend requirements
+because PyTorch/Ultralytics are large:
+
+```bash
+cd backend
+pip install -r requirements-yolo.txt
+```
+
+Train the segmentation model:
+
+```bash
+python predict/train_yolo_segmenter.py train --model predict/model_files/yolo_food_seg.pt --epochs 100 --imgsz 640 --batch 2 --workers 0 --device 0
+```
+
+The `--workers 0` option is used on Windows to avoid Torch multiprocessing
+memory issues. The script copies the best trained model to:
+
+```
+backend/predict/model_files/yolo_food_seg.pt
+```
+
+Evaluate the trained model:
+
+```bash
+python predict/evaluate_yolo_segmenter.py --model predict/model_files/yolo_food_seg.pt --data african_food_annotation/data.yaml --imgsz 640 --workers 0 --device 0
+```
+
+Evaluation outputs are written to:
+
+```
+backend/predict/yolo_evaluation_reports/
+```
+
+### Latest YOLO Evaluation
+
+The model was evaluated on 38 validation images containing 63 annotated food
+instances. Since segmentation models do not use ordinary classification
+accuracy, **mask mAP@0.5** is used as the main accuracy-style metric.
+
+| Metric | Result |
+|--------|--------|
+| Mask mAP@0.5 | 62.23% |
+| Mask mAP@0.5:0.95 | 48.98% |
+| Precision | 50.64% |
+| Recall | 60.38% |
+| F1-score | 55.08% |
+| Box mAP@0.5 | 61.30% |
+
+Per-class mask mAP@0.5:
+
+| Class | Support | Precision | Recall | F1-score | Mask mAP@0.5 |
+|-------|---------|-----------|--------|----------|--------------|
+| Jollof Rice | 20 | 74.02% | 100.00% | 85.07% | 99.26% |
+| Fried Plantain | 6 | 46.50% | 50.00% | 48.19% | 48.83% |
+| Chicken | 9 | 25.39% | 55.56% | 34.85% | 26.72% |
+| Egusi Soup | 19 | 80.92% | 100.00% | 89.45% | 99.50% |
+| Eba | 6 | 77.02% | 56.73% | 65.33% | 87.85% |
+| Pounded Yam | 3 | 0.00% | 0.00% | 0.00% | 11.20% |
+
+The strongest classes are `egusi_soup`, `jollof_rice`, and `eba`. `pounded_yam`
+needs more annotated examples because the validation set currently contains only
+three pounded-yam instances.
 
 ## Project Structure
 
@@ -92,7 +205,7 @@ calvision/
 |   |-- calvision_backend/    # Django settings, URLs, WSGI
 |   |-- users/                # Auth, custom user model
 |   |-- meals/                # Meal logs, food items
-|   |-- predict/              # AI inference endpoint and TFLite classifier
+|   |-- predict/              # AI inference endpoint, YOLO segmenter, TFLite fallback
 |   `-- data/                 # nutrition_fallback.json
 `-- frontend/
     `-- src/

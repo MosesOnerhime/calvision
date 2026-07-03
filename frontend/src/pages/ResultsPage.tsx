@@ -20,6 +20,7 @@ interface EditableFoodItem extends FoodItem {
   base_protein: number;
   base_carbs: number;
   base_fat: number;
+  predicted_name: string;
 }
 
 interface Results {
@@ -42,6 +43,15 @@ const PORTION_PRESETS = [
   { label: 'Small', multiplier: 0.75 },
   { label: 'Medium', multiplier: 1 },
   { label: 'Large', multiplier: 1.35 },
+];
+
+const FOOD_CORRECTION_OPTIONS = [
+  { raw_name: 'jollof_rice', name: 'Jollof Rice', calories: 145, protein: 3.2, carbs: 28.0, fat: 2.8 },
+  { raw_name: 'fried_plantain', name: 'Fried Plantain', calories: 231, protein: 1.5, carbs: 38.4, fat: 8.9 },
+  { raw_name: 'chicken', name: 'Chicken', calories: 165, protein: 31.0, carbs: 0.0, fat: 3.6 },
+  { raw_name: 'egusi_soup', name: 'Egusi Soup', calories: 212, protein: 9.8, carbs: 8.2, fat: 16.5 },
+  { raw_name: 'eba', name: 'Eba', calories: 130, protein: 1.2, carbs: 31.2, fat: 0.3 },
+  { raw_name: 'pounded_yam', name: 'Pounded Yam', calories: 118, protein: 1.5, carbs: 27.8, fat: 0.2 },
 ];
 
 export default function ResultsPage() {
@@ -72,6 +82,12 @@ export default function ResultsPage() {
   const updatePortion = (index: number, weight: number) => {
     setAdjustedItems(items => items.map((item, itemIndex) => (
       itemIndex === index ? recalculateForWeight(item, weight) : item
+    )));
+  };
+
+  const updatePrediction = (index: number, rawName: string) => {
+    setAdjustedItems(items => items.map((item, itemIndex) => (
+      itemIndex === index ? recalculateForFoodLabel(item, rawName) : item
     )));
   };
 
@@ -168,6 +184,7 @@ export default function ResultsPage() {
                 key={`${item.name}-${i}`}
                 item={item}
                 onPortionChange={weight => updatePortion(i, weight)}
+                onPredictionChange={rawName => updatePrediction(i, rawName)}
               />
             ))}
           </div>
@@ -220,13 +237,17 @@ export default function ResultsPage() {
 function FoodItemCard({
   item,
   onPortionChange,
+  onPredictionChange,
 }: {
   item: EditableFoodItem;
   onPortionChange: (weight: number) => void;
+  onPredictionChange: (rawName: string) => void;
 }) {
   const selectedPreset = PORTION_PRESETS.find(preset => (
     Math.round(item.weight_grams) === Math.round(item.original_weight_grams * preset.multiplier)
   ))?.label;
+  const selectedRawName = getFoodOptionForItem(item)?.raw_name ?? item.raw_name ?? '';
+  const hasCorrection = item.predicted_name.toLowerCase() !== item.name.toLowerCase();
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:bg-gray-900 dark:border-gray-800">
@@ -237,6 +258,11 @@ function FoodItemCard({
             {item.weight_grams}g estimated portion
             {typeof item.confidence === 'number' ? ` - ${item.confidence}% confidence` : ''}
           </p>
+          {hasCorrection && (
+            <p className="text-xs text-green-700 mt-1 dark:text-green-400">
+              Corrected from {item.predicted_name}
+            </p>
+          )}
           {item.nutrition_source && (
             <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
               Source: {formatNutritionSource(item.nutrition_source)}
@@ -247,6 +273,27 @@ function FoodItemCard({
           <div className="text-xl font-bold text-green-700">{item.calories}</div>
           <div className="text-xs text-gray-500 dark:text-gray-400">kcal</div>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-sm font-semibold text-gray-900 mb-2 dark:text-gray-100" htmlFor={`food-label-${item.predicted_name}-${item.original_weight_grams}`}>
+          Food label
+        </label>
+        <select
+          id={`food-label-${item.predicted_name}-${item.original_weight_grams}`}
+          value={selectedRawName}
+          onChange={event => onPredictionChange(event.target.value)}
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100 dark:bg-gray-950 dark:border-gray-700 dark:text-gray-100 dark:focus:ring-green-950"
+        >
+          {!getFoodOptionForItem(item) && (
+            <option value={selectedRawName}>{item.name}</option>
+          )}
+          {FOOD_CORRECTION_OPTIONS.map(option => (
+            <option key={option.raw_name} value={option.raw_name}>
+              {option.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:bg-gray-950 dark:border-gray-800">
@@ -412,11 +459,13 @@ function roundOne(value: number) {
 function toEditableFoodItem(item: FoodItem): EditableFoodItem {
   return {
     ...item,
+    raw_name: item.raw_name ?? rawNameFromDisplayName(item.name),
     original_weight_grams: item.weight_grams || 1,
     base_calories: item.calories || 0,
     base_protein: item.protein || 0,
     base_carbs: item.carbs || 0,
     base_fat: item.fat || 0,
+    predicted_name: item.name,
   };
 }
 
@@ -432,6 +481,56 @@ function recalculateForWeight(item: EditableFoodItem, weight: number): EditableF
     carbs: roundOne(item.base_carbs * ratio),
     fat: roundOne(item.base_fat * ratio),
   };
+}
+
+function recalculateForFoodLabel(item: EditableFoodItem, rawName: string): EditableFoodItem {
+  const option = FOOD_CORRECTION_OPTIONS.find(food => food.raw_name === rawName);
+  if (!option) {
+    return item;
+  }
+
+  const originalNutrition = nutritionForWeight(option, item.original_weight_grams);
+  const currentNutrition = nutritionForWeight(option, item.weight_grams);
+  const changed = item.predicted_name.toLowerCase() !== option.name.toLowerCase();
+
+  return {
+    ...item,
+    raw_name: option.raw_name,
+    name: option.name,
+    base_calories: originalNutrition.calories,
+    base_protein: originalNutrition.protein,
+    base_carbs: originalNutrition.carbs,
+    base_fat: originalNutrition.fat,
+    calories: currentNutrition.calories,
+    protein: currentNutrition.protein,
+    carbs: currentNutrition.carbs,
+    fat: currentNutrition.fat,
+    confidence: changed ? undefined : item.confidence,
+    nutrition_source: changed ? 'user_corrected_curated_african_food_fallback' : item.nutrition_source,
+  };
+}
+
+function nutritionForWeight(
+  option: (typeof FOOD_CORRECTION_OPTIONS)[number],
+  weight: number,
+): Pick<FoodItem, 'calories' | 'protein' | 'carbs' | 'fat'> {
+  const ratio = Math.max(1, weight) / 100;
+  return {
+    calories: roundOne(option.calories * ratio),
+    protein: roundOne(option.protein * ratio),
+    carbs: roundOne(option.carbs * ratio),
+    fat: roundOne(option.fat * ratio),
+  };
+}
+
+function getFoodOptionForItem(item: FoodItem) {
+  const rawName = item.raw_name ?? rawNameFromDisplayName(item.name);
+  return FOOD_CORRECTION_OPTIONS.find(option => option.raw_name === rawName)
+    ?? FOOD_CORRECTION_OPTIONS.find(option => option.name.toLowerCase() === item.name.toLowerCase());
+}
+
+function rawNameFromDisplayName(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, '_');
 }
 
 function formatNutritionSource(source: string) {
