@@ -259,7 +259,7 @@ def serialize_detections(detections: list[dict]) -> list[dict]:
 
 def render_detection_overlay(img: Image.Image, detections: list[dict]) -> str:
     annotated = img.convert('RGBA')
-    font = ImageFont.load_default()
+    font = overlay_font(annotated.size)
 
     for index, detection in enumerate(detections):
         color = OVERLAY_COLORS[index % len(OVERLAY_COLORS)]
@@ -277,7 +277,8 @@ def render_detection_overlay(img: Image.Image, detections: list[dict]) -> str:
     for index, detection in enumerate(detections):
         color = OVERLAY_COLORS[index % len(OVERLAY_COLORS)]
         x1, y1, x2, y2 = [int(value) for value in detection['box']]
-        draw.rectangle((x1, y1, x2, y2), outline=color + (255,), width=4)
+        stroke_width = max(4, annotated.width // 180)
+        draw.rectangle((x1, y1, x2, y2), outline=color + (255,), width=stroke_width)
 
         confidence = detection.get('confidence')
         label = detection['name']
@@ -291,15 +292,28 @@ def render_detection_overlay(img: Image.Image, detections: list[dict]) -> str:
         text_box = draw.textbbox((0, 0), label, font=font)
         text_width = text_box[2] - text_box[0]
         text_height = text_box[3] - text_box[1]
-        label_y = max(0, y1 - text_height - 8)
-        label_width = min(text_width + 10, annotated.width - x1)
+        padding_x = max(8, annotated.width // 120)
+        padding_y = max(6, annotated.height // 160)
+        label_y = max(0, y1 - text_height - (padding_y * 2))
+        label_width = min(text_width + (padding_x * 2), annotated.width - x1)
         draw.rectangle(
-            (x1, label_y, x1 + label_width, label_y + text_height + 8),
+            (x1, label_y, x1 + label_width, label_y + text_height + (padding_y * 2)),
             fill=color + (230,),
         )
-        draw.text((x1 + 5, label_y + 4), label, fill=(255, 255, 255, 255), font=font)
+        draw.text((x1 + padding_x, label_y + padding_y), label, fill=(255, 255, 255, 255), font=font)
 
     return _image_to_data_url(annotated.convert('RGB'))
+
+
+def overlay_font(image_size: tuple[int, int]):
+    width, height = image_size
+    font_size = max(18, min(42, int(min(width, height) * 0.045)))
+    for font_name in ('arialbd.ttf', 'arial.ttf', 'DejaVuSans-Bold.ttf'):
+        try:
+            return ImageFont.truetype(font_name, font_size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
 
 
 def _image_to_data_url(img: Image.Image) -> str:
