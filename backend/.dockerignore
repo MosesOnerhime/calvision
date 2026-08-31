@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.env
+db.sqlite3
+test.sqlite3
+media/
+staticfiles/
+african_food_annotation/
+training/
+validation_set/
+predict/evaluation_reports/
+predict/yolo_evaluation_reports/
+*.cache

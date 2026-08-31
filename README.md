@@ -21,6 +21,70 @@ docker-compose up --build
 # Admin    -> http://localhost:8000/admin
 ```
 
+## Contabo Backend Deployment
+
+The production backend runs on `moses.dev.approovia.net`; the React frontend is
+hosted separately at `https://calvision-two.vercel.app`. The backend-only stack
+in `docker-compose.backend.yml` contains PostgreSQL, Django/Gunicorn with YOLO,
+and Caddy. Caddy obtains and renews HTTPS certificates automatically and serves
+Django's static and uploaded media files.
+
+Use a Linux VPS with at least 4 GB RAM. The current deployment target has 8 GB,
+which is suitable for the project's CPU-based YOLO inference workload.
+
+### Server Setup
+
+```bash
+ssh root@moses.dev.approovia.net
+apt update
+apt install -y docker.io docker-compose-v2 ufw
+systemctl enable --now docker
+ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw --force enable
+```
+
+Upload or clone the repository into `/opt/calvision`, then create the untracked
+production environment file:
+
+```bash
+cd /opt/calvision
+cp backend/.env.contabo.example backend/.env
+nano backend/.env
+```
+
+Replace `SECRET_KEY`, `POSTGRES_PASSWORD`, and the password inside
+`DATABASE_URL`. Add a real `USDA_API_KEY` when one is available. The example
+already restricts browser API access to the deployed Vercel frontend.
+
+Start and verify the backend:
+
+```bash
+docker compose -f docker-compose.backend.yml up --build -d
+docker compose -f docker-compose.backend.yml ps
+docker compose -f docker-compose.backend.yml logs -f backend
+curl https://moses.dev.approovia.net/api/health/
+```
+
+In Vercel, set `VITE_API_URL=https://moses.dev.approovia.net` for the Production
+environment and redeploy the frontend. Vite embeds this value at build time, so
+changing it requires a new Vercel deployment.
+
+### Useful Production Commands
+
+```bash
+docker compose -f docker-compose.backend.yml ps
+docker compose -f docker-compose.backend.yml logs -f
+docker compose -f docker-compose.backend.yml restart backend
+docker compose -f docker-compose.backend.yml exec backend python manage.py createsuperuser
+docker compose -f docker-compose.backend.yml pull
+docker compose -f docker-compose.backend.yml up --build -d
+```
+
+Do not run `docker compose down -v` in production because `-v` deletes the
+PostgreSQL, media, and TLS certificate volumes.
+
 ## Manual Setup
 
 ### Backend
