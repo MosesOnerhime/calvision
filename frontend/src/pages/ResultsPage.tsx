@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Check, Database, Image as ImageIcon, PencilLine, RotateCcw, Save, Scale, ScanLine } from 'lucide-react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { Button, InlineAlert, PageHeader, cn } from '../components/ui';
 
 interface FoodItem {
   name: string;
@@ -34,10 +36,10 @@ interface Results {
 
 type MacroKey = 'carbs' | 'protein' | 'fat';
 
-const MACROS: Array<{ key: MacroKey; label: string; color: string; bg: string; kcalPerGram: number }> = [
-  { key: 'carbs', label: 'Carbs', color: '#d97706', bg: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300', kcalPerGram: 4 },
-  { key: 'protein', label: 'Protein', color: '#2563eb', bg: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300', kcalPerGram: 4 },
-  { key: 'fat', label: 'Fat', color: '#dc2626', bg: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300', kcalPerGram: 9 },
+const MACROS: Array<{ key: MacroKey; label: string; color: string; styles: string; kcalPerGram: number }> = [
+  { key: 'carbs', label: 'Carbs', color: '#B87412', styles: 'bg-carbs-soft text-carbs', kcalPerGram: 4 },
+  { key: 'protein', label: 'Protein', color: '#3567A8', styles: 'bg-protein-soft text-protein', kcalPerGram: 4 },
+  { key: 'fat', label: 'Fat', color: '#76579A', styles: 'bg-fat-soft text-fat', kcalPerGram: 9 },
 ];
 
 const PORTION_PRESETS = [
@@ -56,7 +58,7 @@ const FOOD_CORRECTION_OPTIONS = [
 ];
 
 export default function ResultsPage() {
-  const { state } = useLocation() as { state: { results: Results; imagePreview: string } };
+  const { state } = useLocation() as { state: { results: Results; imagePreview: string } | null };
   const navigate = useNavigate();
   const results = state?.results;
   const imagePreview = state?.imagePreview;
@@ -65,7 +67,7 @@ export default function ResultsPage() {
   const [error, setError] = useState('');
   const [imageMode, setImageMode] = useState<'ai' | 'original'>('ai');
   const [adjustedItems, setAdjustedItems] = useState<EditableFoodItem[]>(() =>
-    (state?.results?.items ?? []).map(toEditableFoodItem)
+    (state?.results?.items ?? []).map(toEditableFoodItem),
   );
   const totalCalories = useMemo(
     () => roundOne(adjustedItems.reduce((sum, item) => sum + Number(item.calories || 0), 0)),
@@ -100,9 +102,9 @@ export default function ResultsPage() {
       if (imagePreview) {
         const response = await fetch(imagePreview);
         const blob = await response.blob();
-        image_base64 = await new Promise<string>((res) => {
+        image_base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader();
-          reader.onloadend = () => res(reader.result as string);
+          reader.onloadend = () => resolve(reader.result as string);
           reader.readAsDataURL(blob);
         });
       }
@@ -121,7 +123,7 @@ export default function ResultsPage() {
         image_base64,
       });
       setSaved(true);
-      setTimeout(() => navigate('/history'), 1500);
+      window.setTimeout(() => navigate('/history'), 1500);
     } catch {
       setError('Failed to save meal. Please try again.');
     } finally {
@@ -130,117 +132,144 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-6">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Meal analysis</p>
-          <h1 className="text-3xl font-bold text-gray-950 mt-1 dark:text-white">Analysis Results</h1>
-        </div>
-        {results.mock && (
-          <span className="w-fit text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900">
-            Demo Data
-          </span>
-        )}
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Meal analysis"
+        title="Analysis results"
+        description="Review the identified foods and portions. Your changes recalculate the nutrition totals before saving."
+        action={results.mock ? (
+          <span className="inline-flex h-9 items-center rounded-full bg-warning-soft px-3 text-xs font-extrabold text-warning">Fallback result</span>
+        ) : undefined}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] gap-6 items-start">
-        <section className="space-y-6">
-          {activeImage && (
-            <div>
-              {hasOverlay && (
-                <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 mb-3 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-                  <button
-                    type="button"
-                    onClick={() => setImageMode('ai')}
-                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                      imageMode === 'ai' ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    AI output
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageMode('original')}
-                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                      imageMode === 'original' ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    Original
-                  </button>
-                </div>
-              )}
-              <div className="rounded-lg overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center shadow-sm dark:bg-gray-900 dark:border-gray-800">
-                <img
-                  src={activeImage}
-                  alt={hasOverlay && imageMode === 'ai' ? 'AI output with food labels and masks' : 'Your meal'}
-                  className="w-full max-h-[72vh] object-contain"
-                />
-              </div>
+      {results.mock && results.reason && (
+        <InlineAlert>{results.reason}</InlineAlert>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.7fr)] lg:items-start">
+        <section className="order-1 lg:col-start-1 lg:row-start-1" aria-label="Analyzed meal image">
+          {hasOverlay && (
+            <div role="tablist" aria-label="Meal image view" className="mb-3 inline-flex rounded-[10px] border border-line bg-surface p-1 dark:border-night-line dark:bg-night-surface">
+              <button
+                role="tab"
+                aria-selected={imageMode === 'ai'}
+                type="button"
+                onClick={() => setImageMode('ai')}
+                className={cn(
+                  'inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold transition-colors',
+                  imageMode === 'ai'
+                    ? 'bg-primary text-white dark:bg-night-primary dark:text-night-canvas'
+                    : 'text-ink-muted hover:text-ink dark:text-night-muted dark:hover:text-night-ink',
+                )}
+              >
+                <ScanLine aria-hidden="true" className="h-4 w-4" />
+                AI output
+              </button>
+              <button
+                role="tab"
+                aria-selected={imageMode === 'original'}
+                type="button"
+                onClick={() => setImageMode('original')}
+                className={cn(
+                  'inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold transition-colors',
+                  imageMode === 'original'
+                    ? 'bg-primary text-white dark:bg-night-primary dark:text-night-canvas'
+                    : 'text-ink-muted hover:text-ink dark:text-night-muted dark:hover:text-night-ink',
+                )}
+              >
+                <ImageIcon aria-hidden="true" className="h-4 w-4" />
+                Original
+              </button>
             </div>
           )}
 
-          <div className="space-y-3">
-            {adjustedItems.map((item, i) => (
-              <FoodItemCard
-                key={`${item.name}-${i}`}
-                item={item}
-                onPortionChange={weight => updatePortion(i, weight)}
-                onPredictionChange={rawName => updatePrediction(i, rawName)}
+          {activeImage ? (
+            <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl border border-line bg-surface-subtle dark:border-night-line dark:bg-night-subtle sm:min-h-[420px]">
+              <img
+                src={activeImage}
+                alt={hasOverlay && imageMode === 'ai' ? 'AI output with food labels and segmentation masks' : 'Uploaded meal'}
+                className="max-h-[72vh] w-full object-contain"
               />
-            ))}
-          </div>
-        </section>
-
-        <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-            <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Calories</div>
-            <div className="mt-1 text-4xl font-bold text-gray-950 dark:text-white">
-              {totalCalories}
-              <span className="text-base font-medium text-gray-500 ml-1 dark:text-gray-400">kcal</span>
-            </div>
-          </div>
-
-          <MacroPieChart summary={macroSummary} />
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-300">
-              {error}
-            </div>
-          )}
-
-          {saved ? (
-            <div className="w-full bg-green-100 text-green-800 font-semibold py-4 rounded-lg text-center dark:bg-green-950 dark:text-green-300">
-              Meal saved. Redirecting to history...
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => navigate('/upload')}
-                className="border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Try Another
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition-colors"
-              >
-                {saving ? 'Saving...' : 'Save Meal'}
-              </button>
-            </div>
+            <InlineAlert>Meal image unavailable. You can still review the nutrition estimates below.</InlineAlert>
           )}
+        </section>
+
+        <aside className="order-2 space-y-4 lg:sticky lg:top-8 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <MacroSummary totalCalories={totalCalories} summary={macroSummary} />
+          {error && <InlineAlert tone="error">{error}</InlineAlert>}
+          {saved && <InlineAlert tone="success">Meal saved. Opening your history...</InlineAlert>}
+          <div className="hidden lg:block">
+            <ResultActions saving={saving} saved={saved} onSave={handleSave} onRetry={() => navigate('/upload')} />
+          </div>
         </aside>
+
+        <section className="order-3 space-y-4 lg:col-start-1 lg:row-start-2" aria-labelledby="food-review-title">
+          <div className="flex items-center justify-between border-b border-line pb-3 dark:border-night-line">
+            <div>
+              <h2 id="food-review-title" className="text-xl font-extrabold text-ink dark:text-night-ink">Review identified foods</h2>
+              <p className="mt-1 text-sm text-ink-muted dark:text-night-muted">Correct a label or adjust grams if an estimate looks wrong.</p>
+            </div>
+            <span className="numeric text-sm font-bold text-ink-muted dark:text-night-muted">{adjustedItems.length} {adjustedItems.length === 1 ? 'item' : 'items'}</span>
+          </div>
+
+          {adjustedItems.map((item, index) => (
+            <FoodItemCard
+              key={`${item.predicted_name}-${index}`}
+              item={item}
+              index={index}
+              onPortionChange={weight => updatePortion(index, weight)}
+              onPredictionChange={rawName => updatePrediction(index, rawName)}
+            />
+          ))}
+
+          {adjustedItems.length === 0 && (
+            <InlineAlert tone="error">No food items were identified. Try another clear, well-lit photo.</InlineAlert>
+          )}
+        </section>
+
+        <div className="order-4 lg:hidden">
+          <ResultActions saving={saving} saved={saved} onSave={handleSave} onRetry={() => navigate('/upload')} />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ResultActions({
+  saving,
+  saved,
+  onSave,
+  onRetry,
+}: {
+  saving: boolean;
+  saved: boolean;
+  onSave: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+      <Button type="button" onClick={onSave} loading={saving} disabled={saved} size="lg">
+        {saved ? <Check aria-hidden="true" className="h-5 w-5" /> : <Save aria-hidden="true" className="h-5 w-5" />}
+        {saved ? 'Meal Saved' : saving ? 'Saving...' : 'Save Meal'}
+      </Button>
+      <Button type="button" variant="secondary" onClick={onRetry} disabled={saving} size="lg">
+        <RotateCcw aria-hidden="true" className="h-5 w-5" />
+        Analyze Another
+      </Button>
     </div>
   );
 }
 
 function FoodItemCard({
   item,
+  index,
   onPortionChange,
   onPredictionChange,
 }: {
   item: EditableFoodItem;
+  index: number;
   onPortionChange: (weight: number) => void;
   onPredictionChange: (rawName: string) => void;
 }) {
@@ -249,166 +278,163 @@ function FoodItemCard({
   ))?.label;
   const selectedRawName = getFoodOptionForItem(item)?.raw_name ?? item.raw_name ?? '';
   const hasCorrection = item.predicted_name.toLowerCase() !== item.name.toLowerCase();
+  const selectId = `food-label-${index}`;
+  const gramsId = `food-grams-${index}`;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div>
-          <h3 className="font-semibold text-gray-950 capitalize dark:text-white">{item.name}</h3>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-            {item.weight_grams}g estimated portion
-            {typeof item.confidence === 'number' ? ` - ${item.confidence}% confidence` : ''}
-          </p>
+    <article className="rounded-2xl border border-line bg-surface dark:border-night-line dark:bg-night-surface">
+      <div className="flex items-start justify-between gap-4 border-b border-line p-4 dark:border-night-line sm:p-5">
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-extrabold capitalize text-ink dark:text-night-ink">{item.name}</h3>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted dark:text-night-muted">
+            {typeof item.confidence === 'number' && <span>{item.confidence}% confidence</span>}
+            {item.nutrition_source && (
+              <span className="inline-flex items-center gap-1.5"><Database aria-hidden="true" className="h-3.5 w-3.5" />{formatNutritionSource(item.nutrition_source)}</span>
+            )}
+            {item.portion_estimation_method && (
+              <span className="inline-flex items-center gap-1.5"><Scale aria-hidden="true" className="h-3.5 w-3.5" />{formatNutritionSource(item.portion_estimation_method)}</span>
+            )}
+          </div>
           {hasCorrection && (
-            <p className="text-xs text-green-700 mt-1 dark:text-green-400">
+            <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary dark:text-night-primary">
+              <PencilLine aria-hidden="true" className="h-3.5 w-3.5" />
               Corrected from {item.predicted_name}
             </p>
           )}
-          {item.nutrition_source && (
-            <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
-              Source: {formatNutritionSource(item.nutrition_source)}
-            </p>
-          )}
-          {item.portion_estimation_method && (
-            <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
-              Portion: {formatNutritionSource(item.portion_estimation_method)}
-            </p>
-          )}
         </div>
-        <div className="text-right">
-          <div className="text-xl font-bold text-green-700">{item.calories}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">kcal</div>
+        <div className="shrink-0 text-right">
+          <p className="numeric text-2xl font-extrabold text-primary dark:text-night-primary">{item.calories}</p>
+          <p className="text-xs text-ink-muted dark:text-night-muted">kcal</p>
         </div>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-sm font-semibold text-gray-900 mb-2 dark:text-gray-100" htmlFor={`food-label-${item.predicted_name}-${item.original_weight_grams}`}>
-          Food label
-        </label>
-        <select
-          id={`food-label-${item.predicted_name}-${item.original_weight_grams}`}
-          value={selectedRawName}
-          onChange={event => onPredictionChange(event.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100 dark:bg-gray-950 dark:border-gray-700 dark:text-gray-100 dark:focus:ring-green-950"
-        >
-          {!getFoodOptionForItem(item) && (
-            <option value={selectedRawName}>{item.name}</option>
-          )}
-          {FOOD_CORRECTION_OPTIONS.map(option => (
-            <option key={option.raw_name} value={option.raw_name}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:bg-gray-950 dark:border-gray-800">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Portion size</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Adjust grams before saving.</div>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-            <span>Grams</span>
-            <input
-              type="number"
-              min={1}
-              step={5}
-              value={Math.round(item.weight_grams)}
-              onChange={e => onPortionChange(Number(e.target.value))}
-              className="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-right text-sm font-semibold text-gray-900 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
-            />
-          </label>
-        </div>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {PORTION_PRESETS.map(preset => {
-            const weight = Math.round(item.original_weight_grams * preset.multiplier);
-            const active = selectedPreset === preset.label;
-            return (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => onPortionChange(weight)}
-                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
-                  active
-                    ? 'border-green-600 bg-green-600 text-white'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-              >
-                {preset.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        <MacroBadge label="Protein" value={item.protein} unit="g" color="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" />
-        <MacroBadge label="Carbs" value={item.carbs} unit="g" color="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300" />
-        <MacroBadge label="Fat" value={item.fat} unit="g" color="bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300" />
-      </div>
-    </div>
-  );
-}
-
-function MacroPieChart({ summary }: { summary: ReturnType<typeof buildMacroSummary> }) {
-  const pieStyle: React.CSSProperties = {
-    background: summary.gradient,
-  };
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-      <div className="flex items-start justify-between gap-3 mb-5">
+      <div className="grid gap-5 p-4 sm:p-5 md:grid-cols-2">
         <div>
-          <h2 className="text-lg font-bold text-gray-950 dark:text-white">Macro Ratio</h2>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">Calories from carbs, protein, and fat.</p>
+          <label className="mb-2 block text-sm font-bold text-ink dark:text-night-ink" htmlFor={selectId}>Food label</label>
+          <select
+            id={selectId}
+            value={selectedRawName}
+            onChange={event => onPredictionChange(event.target.value)}
+            className="h-11 w-full rounded-[10px] border border-line-strong bg-surface px-3 text-sm font-bold text-ink hover:border-primary focus:border-primary dark:border-night-line-strong dark:bg-night-canvas dark:text-night-ink dark:hover:border-night-primary dark:focus:border-night-primary"
+          >
+            {!getFoodOptionForItem(item) && <option value={selectedRawName}>{item.name}</option>}
+            {FOOD_CORRECTION_OPTIONS.map(option => (
+              <option key={option.raw_name} value={option.raw_name}>{option.name}</option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs leading-5 text-ink-muted dark:text-night-muted">Change this if the model identified the food incorrectly.</p>
         </div>
-        <div className="text-right">
-          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{summary.totalMacroCalories}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">macro kcal</div>
-        </div>
-      </div>
 
-      <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-5">
-        <div className="relative h-44 w-44 rounded-full shadow-inner" style={pieStyle}>
-          <div className="absolute inset-10 rounded-full bg-white flex flex-col items-center justify-center border border-gray-100 dark:bg-gray-950 dark:border-gray-800">
-            <span className="text-2xl font-bold text-gray-950 dark:text-white">{summary.totalGrams}g</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">macros</span>
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-sm font-bold text-ink dark:text-night-ink" htmlFor={gramsId}>Portion size</label>
+            <div className="flex items-center gap-2">
+              <input
+                id={gramsId}
+                type="number"
+                min={1}
+                step={5}
+                value={Math.round(item.weight_grams)}
+                onChange={event => onPortionChange(Number(event.target.value))}
+                className="h-11 w-24 rounded-[10px] border border-line-strong bg-surface px-3 text-right text-sm font-bold text-ink hover:border-primary focus:border-primary dark:border-night-line-strong dark:bg-night-canvas dark:text-night-ink dark:hover:border-night-primary dark:focus:border-night-primary"
+              />
+              <span className="text-sm font-semibold text-ink-muted dark:text-night-muted">g</span>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-3 rounded-[10px] border border-line-strong p-1 dark:border-night-line-strong">
+            {PORTION_PRESETS.map(preset => {
+              const weight = Math.round(item.original_weight_grams * preset.multiplier);
+              const active = selectedPreset === preset.label;
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onPortionChange(weight)}
+                  className={cn(
+                    'h-9 rounded-lg px-2 text-xs font-bold transition-colors sm:text-sm',
+                    active
+                      ? 'bg-primary text-white dark:bg-night-primary dark:text-night-canvas'
+                      : 'text-ink-muted hover:bg-surface-subtle hover:text-ink dark:text-night-muted dark:hover:bg-night-subtle dark:hover:text-night-ink',
+                  )}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
           </div>
         </div>
-
-        <div className="w-full space-y-3">
-          {summary.parts.map(part => (
-            <div key={part.key}>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: part.color }} />
-                  <span className="font-medium text-gray-800 dark:text-gray-200">{part.label}</span>
-                </div>
-                <span className="font-semibold text-gray-950 dark:text-white">{part.percent}%</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-100 overflow-hidden dark:bg-gray-800">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${part.percent}%`, backgroundColor: part.color }}
-                />
-              </div>
-              <div className="text-xs text-gray-500 mt-1 dark:text-gray-400">
-                {part.grams}g / {part.calories} kcal
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-3 border-t border-line dark:border-night-line">
+        <MacroBadge label="Protein" value={item.protein} styles="text-protein" />
+        <MacroBadge label="Carbs" value={item.carbs} styles="border-x border-line text-carbs dark:border-night-line" />
+        <MacroBadge label="Fat" value={item.fat} styles="text-fat" />
+      </div>
+    </article>
   );
 }
 
-function MacroBadge({ label, value, unit, color }: { label: string; value: number; unit: string; color: string }) {
+function MacroSummary({ totalCalories, summary }: { totalCalories: number; summary: ReturnType<typeof buildMacroSummary> }) {
+  const pieStyle: React.CSSProperties = { background: summary.gradient };
+
   return (
-    <div className={`rounded-lg px-3 py-2 text-center ${color}`}>
-      <div className="text-sm font-bold">{value}{unit}</div>
-      <div className="text-xs">{label}</div>
+    <section className="rounded-2xl border border-line bg-surface p-5 dark:border-night-line dark:bg-night-surface" aria-labelledby="macro-summary-title">
+      <div className="border-b border-line pb-5 dark:border-night-line">
+        <p className="text-sm font-semibold text-ink-muted dark:text-night-muted">Estimated total</p>
+        <p className="numeric mt-1 text-4xl font-extrabold text-ink dark:text-night-ink">
+          {totalCalories}<span className="ml-1.5 text-sm font-bold text-ink-muted dark:text-night-muted">kcal</span>
+        </p>
+      </div>
+
+      <div className="pt-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="macro-summary-title" className="font-extrabold text-ink dark:text-night-ink">Macro ratio</h2>
+            <p className="mt-1 text-xs leading-5 text-ink-muted dark:text-night-muted">Share of calories from carbs, protein, and fat.</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="numeric text-sm font-bold text-ink dark:text-night-ink">{summary.totalMacroCalories}</p>
+            <p className="text-[11px] text-ink-muted dark:text-night-muted">macro kcal</p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row lg:flex-col xl:flex-row">
+          <div className="relative h-36 w-36 shrink-0 rounded-full" style={pieStyle} aria-label={`${summary.totalGrams} grams of macronutrients`}>
+            <div className="absolute inset-8 flex flex-col items-center justify-center rounded-full border border-line bg-surface dark:border-night-line dark:bg-night-surface">
+              <span className="numeric text-xl font-extrabold text-ink dark:text-night-ink">{summary.totalGrams}g</span>
+              <span className="text-[11px] text-ink-muted dark:text-night-muted">macros</span>
+            </div>
+          </div>
+
+          <div className="w-full space-y-3">
+            {summary.parts.map(part => (
+              <div key={part.key}>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-2 font-bold text-ink dark:text-night-ink">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: part.color }} />
+                    {part.label}
+                  </span>
+                  <span className="numeric font-extrabold text-ink dark:text-night-ink">{part.percent}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-strong dark:bg-night-strong">
+                  <div className="h-full rounded-full" style={{ width: `${part.percent}%`, backgroundColor: part.color }} />
+                </div>
+                <p className="numeric mt-1 text-[11px] text-ink-muted dark:text-night-muted">{part.grams}g · {part.calories} kcal</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MacroBadge({ label, value, styles }: { label: string; value: number; styles: string }) {
+  return (
+    <div className={cn('px-2 py-3 text-center', styles)}>
+      <p className="numeric text-sm font-extrabold">{value}g</p>
+      <p className="mt-0.5 text-[11px] font-bold">{label}</p>
     </div>
   );
 }
@@ -435,27 +461,14 @@ function buildMacroSummary(items: FoodItem[]) {
     const start = cursor;
     const end = cursor + percent;
     cursor = end;
-
-    return {
-      ...macro,
-      grams: grams[macro.key],
-      calories: calories[macro.key],
-      percent,
-      start,
-      end,
-    };
+    return { ...macro, grams: grams[macro.key], calories: calories[macro.key], percent, start, end };
   });
 
   const gradient = totalMacroCalories > 0
     ? `conic-gradient(${parts.map(part => `${part.color} ${part.start}% ${part.end}%`).join(', ')})`
-    : 'conic-gradient(#e5e7eb 0% 100%)';
+    : 'conic-gradient(#D5DED6 0% 100%)';
 
-  return {
-    parts,
-    totalMacroCalories,
-    totalGrams,
-    gradient,
-  };
+  return { parts, totalMacroCalories, totalGrams, gradient };
 }
 
 function roundOne(value: number) {
@@ -478,7 +491,6 @@ function toEditableFoodItem(item: FoodItem): EditableFoodItem {
 function recalculateForWeight(item: EditableFoodItem, weight: number): EditableFoodItem {
   const nextWeight = Math.max(1, Math.round(Number.isFinite(weight) ? weight : item.weight_grams));
   const ratio = nextWeight / item.original_weight_grams;
-
   return {
     ...item,
     weight_grams: nextWeight,
@@ -491,9 +503,7 @@ function recalculateForWeight(item: EditableFoodItem, weight: number): EditableF
 
 function recalculateForFoodLabel(item: EditableFoodItem, rawName: string): EditableFoodItem {
   const option = FOOD_CORRECTION_OPTIONS.find(food => food.raw_name === rawName);
-  if (!option) {
-    return item;
-  }
+  if (!option) return item;
 
   const originalNutrition = nutritionForWeight(option, item.original_weight_grams);
   const currentNutrition = nutritionForWeight(option, item.weight_grams);
@@ -540,5 +550,5 @@ function rawNameFromDisplayName(name: string) {
 }
 
 function formatNutritionSource(source: string) {
-  return source.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+  return source.replace(/_/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 }

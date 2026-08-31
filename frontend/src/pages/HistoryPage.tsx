@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, Flame, History, ScanLine, Utensils } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { Button, InlineAlert, PageHeader, Skeleton, cn } from '../components/ui';
 
 interface FoodItem {
   id: number;
@@ -26,102 +28,114 @@ export default function HistoryPage() {
   const navigate = useNavigate();
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     api.get('/api/meals/history/')
-      .then(r => setMeals(r.data))
-      .catch(() => {})
+      .then(response => setMeals(response.data))
+      .catch(() => setError('We could not load your meal history. Refresh the page to try again.'))
       .finally(() => setLoading(false));
   }, []);
 
   const stats = useMemo(() => {
     const totalCalories = meals.reduce((sum, meal) => sum + Number(meal.total_calories || 0), 0);
     const itemCount = meals.reduce((sum, meal) => sum + meal.food_items.length, 0);
-    const averageCalories = meals.length ? Math.round(totalCalories / meals.length) : 0;
-
     return {
-      totalCalories: Math.round(totalCalories),
       itemCount,
-      averageCalories,
+      averageCalories: meals.length ? Math.round(totalCalories / meals.length) : 0,
     };
   }, [meals]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader count={0} />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse dark:bg-gray-900 dark:border-gray-800" />)}
-        </div>
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white border border-gray-200 rounded-lg animate-pulse dark:bg-gray-900 dark:border-gray-800" />)}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <PageHeader count={meals.length} />
-
-      {meals.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard label="Meals Logged" value={meals.length.toString()} accent="border-l-green-500" />
-          <StatCard label="Total Calories" value={`${stats.totalCalories} kcal`} accent="border-l-orange-500" />
-          <StatCard label="Average Meal" value={`${stats.averageCalories} kcal`} accent="border-l-blue-500" />
-        </div>
-      )}
-
-      {meals.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-10 text-center shadow-sm dark:bg-gray-900 dark:border-gray-800">
-          <div className="mx-auto h-12 w-12 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black dark:bg-green-950 dark:border-green-900 dark:text-green-300">
-            +
-          </div>
-          <h2 className="text-xl font-bold text-gray-950 mt-5 dark:text-white">No meals logged yet</h2>
-          <p className="text-gray-500 mt-2 dark:text-gray-400">Analyze your first meal to start building a nutrition history.</p>
-          <button
-            onClick={() => navigate('/upload')}
-            className="mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-lg transition-colors"
-          >
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="History"
+        title="Meal history"
+        description={loading ? 'Loading your saved nutrition records...' : meals.length === 1 ? '1 meal logged' : `${meals.length} meals logged`}
+        action={(
+          <Button type="button" onClick={() => navigate('/upload')} className="w-full sm:w-auto">
+            <ScanLine aria-hidden="true" className="h-4 w-4" />
             Analyze Meal
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {meals.map(meal => (
-            <MealHistoryItem
-              key={meal.id}
-              meal={meal}
-              expanded={expanded === meal.id}
-              onToggle={() => setExpanded(expanded === meal.id ? null : meal.id)}
-            />
-          ))}
-        </div>
+          </Button>
+        )}
+      />
+
+      {error && <InlineAlert tone="error">{error}</InlineAlert>}
+
+      {loading ? (
+        <HistorySkeleton />
+      ) : meals.length === 0 && !error ? (
+        <section className="border-y border-line py-14 text-center dark:border-night-line sm:py-16">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft text-primary dark:bg-night-primary-soft dark:text-night-primary">
+            <History aria-hidden="true" className="h-6 w-6" />
+          </span>
+          <h2 className="mt-5 text-xl font-extrabold text-ink dark:text-night-ink">No meals logged yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-ink-muted dark:text-night-muted">
+            Analyze your first meal, review the result, and save it to begin your nutrition history.
+          </p>
+          <Button type="button" onClick={() => navigate('/upload')} size="lg" className="mt-6">
+            <ScanLine aria-hidden="true" className="h-5 w-5" />
+            Analyze Your First Meal
+          </Button>
+        </section>
+      ) : meals.length > 0 && (
+        <>
+          <section aria-label="History summary" className="grid gap-4 sm:grid-cols-3">
+            <HistoryStat label="Meals logged" value={meals.length.toLocaleString()} icon={History} tone="text-primary bg-primary-soft" />
+            <HistoryStat label="Food items" value={stats.itemCount.toLocaleString()} icon={Utensils} tone="text-protein bg-protein-soft" />
+            <HistoryStat label="Average meal" value={`${stats.averageCalories.toLocaleString()} kcal`} icon={Flame} tone="text-accent bg-accent-soft" />
+          </section>
+
+          <section aria-label="Saved meals" className="space-y-3">
+            {meals.map(meal => (
+              <MealHistoryItem
+                key={meal.id}
+                meal={meal}
+                expanded={expanded === meal.id}
+                onToggle={() => setExpanded(expanded === meal.id ? null : meal.id)}
+              />
+            ))}
+          </section>
+        </>
       )}
     </div>
   );
 }
 
-function PageHeader({ count }: { count: number }) {
+function HistorySkeleton() {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-green-700">History</p>
-        <h1 className="text-3xl font-bold text-gray-950 mt-1 dark:text-white">Meal History</h1>
-        <p className="text-gray-500 mt-2 dark:text-gray-400">
-          {count === 1 ? '1 meal logged' : `${count} meals logged`}
-        </p>
+    <div className="space-y-6" aria-label="Loading meal history">
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[1, 2, 3].map(item => <Skeleton key={item} className="h-28" />)}
+      </div>
+      <div className="space-y-3">
+        {[1, 2, 3].map(item => <Skeleton key={item} className="h-28" />)}
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent: string }) {
+function HistoryStat({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+  tone: string;
+}) {
   return (
-    <div className={`bg-white border border-gray-200 border-l-4 rounded-lg p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800 ${accent}`}>
-      <div className="text-2xl font-bold text-gray-950 dark:text-white">{value}</div>
-      <div className="text-sm text-gray-500 mt-1 dark:text-gray-400">{label}</div>
+    <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 dark:border-night-line dark:bg-night-surface">
+      <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]', tone)}>
+        <Icon aria-hidden="true" className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="numeric truncate text-xl font-extrabold text-ink dark:text-night-ink">{value}</p>
+        <p className="mt-0.5 text-xs text-ink-muted dark:text-night-muted">{label}</p>
+      </div>
     </div>
   );
 }
@@ -135,7 +149,8 @@ function MealHistoryItem({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const mealTitle = meal.food_items.map(f => f.name).join(', ') || 'Meal';
+  const detailId = `meal-details-${meal.id}`;
+  const mealTitle = meal.food_items.map(food => food.name).join(', ') || 'Meal';
   const macros = meal.food_items.reduce(
     (sum, item) => ({
       protein: sum.protein + Number(item.protein || 0),
@@ -146,85 +161,101 @@ function MealHistoryItem({
   );
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden dark:bg-gray-900 dark:border-gray-800">
+    <article className="overflow-hidden rounded-2xl border border-line bg-surface dark:border-night-line dark:bg-night-surface">
       <button
+        type="button"
         onClick={onToggle}
-        className="w-full grid grid-cols-[64px_1fr_auto] items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left dark:hover:bg-gray-800"
+        aria-expanded={expanded}
+        aria-controls={detailId}
+        className="grid w-full grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 p-4 text-left transition-colors hover:bg-surface-subtle dark:hover:bg-night-subtle sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:gap-4 sm:p-5"
       >
         {meal.image_url ? (
-          <img src={meal.image_url} alt="Meal" className="w-16 h-16 rounded-lg object-cover bg-gray-100 dark:bg-gray-800" />
+          <img src={meal.image_url} alt="" className="h-14 w-14 rounded-[10px] bg-surface-subtle object-cover dark:bg-night-subtle sm:h-[72px] sm:w-[72px]" />
         ) : (
-          <div className="w-16 h-16 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black dark:bg-green-950 dark:border-green-900 dark:text-green-300">
-            CV
-          </div>
+          <span className="flex h-14 w-14 items-center justify-center rounded-[10px] bg-primary-soft text-primary dark:bg-night-primary-soft dark:text-night-primary sm:h-[72px] sm:w-[72px]">
+            <Utensils aria-hidden="true" className="h-6 w-6" />
+          </span>
         )}
 
         <div className="min-w-0">
-          <div className="font-semibold text-gray-950 capitalize truncate dark:text-white">{mealTitle}</div>
-          <div className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-            {new Date(meal.created_at).toLocaleString('en-US', {
+          <h2 className="truncate font-extrabold capitalize text-ink dark:text-night-ink">{mealTitle}</h2>
+          <p className="mt-1 truncate text-xs text-ink-muted dark:text-night-muted sm:text-sm">
+            {new Date(meal.created_at).toLocaleString(undefined, {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
               hour: '2-digit',
               minute: '2-digit',
             })}
-          </div>
-          <div className="hidden sm:flex gap-3 text-xs text-gray-500 mt-2 dark:text-gray-400">
-            <span>{roundOne(macros.protein)}g protein</span>
-            <span>{roundOne(macros.carbs)}g carbs</span>
-            <span>{roundOne(macros.fat)}g fat</span>
-            {meal.food_items[0]?.confidence != null && (
-              <span>{meal.food_items[0].confidence}% confidence</span>
-            )}
+          </p>
+          <div className="mt-2 hidden flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted dark:text-night-muted sm:flex">
+            <span className="text-protein">{roundOne(macros.protein)}g protein</span>
+            <span className="text-carbs">{roundOne(macros.carbs)}g carbs</span>
+            <span className="text-fat">{roundOne(macros.fat)}g fat</span>
           </div>
         </div>
 
-        <div className="text-right">
-          <div className="font-bold text-green-700">{meal.total_calories}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">kcal</div>
-          <div className={`text-gray-400 text-lg transition-transform mt-1 ${expanded ? 'rotate-180' : ''}`}>
-            v
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="text-right">
+            <p className="numeric font-extrabold text-primary dark:text-night-primary">{meal.total_calories}</p>
+            <p className="text-[11px] text-ink-muted dark:text-night-muted">kcal</p>
           </div>
+          <ChevronDown aria-hidden="true" className={cn('h-5 w-5 text-ink-soft transition-transform dark:text-night-muted', expanded && 'rotate-180')} />
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 p-4 overflow-x-auto dark:border-gray-800">
-          <table className="w-full min-w-[840px] text-sm">
-            <thead>
-              <tr className="text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-                <th className="text-left pb-3">Food</th>
-                <th className="text-right pb-3">Weight</th>
-                <th className="text-right pb-3">Kcal</th>
-                <th className="text-right pb-3">Protein</th>
-                <th className="text-right pb-3">Carbs</th>
-                <th className="text-right pb-3">Fat</th>
-                <th className="text-right pb-3">Confidence</th>
-                <th className="text-right pb-3">Source</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {meal.food_items.map(item => (
-                <tr key={item.id}>
-                  <td className="py-3 font-medium capitalize text-gray-950 dark:text-gray-100">{item.name}</td>
-                  <td className="py-3 text-right text-gray-500 dark:text-gray-400">{item.weight_grams}g</td>
-                  <td className="py-3 text-right font-semibold text-green-700">{item.calories}</td>
-                  <td className="py-3 text-right text-blue-700">{item.protein}g</td>
-                  <td className="py-3 text-right text-amber-700">{item.carbs}g</td>
-                  <td className="py-3 text-right text-red-600">{item.fat}g</td>
-                  <td className="py-3 text-right text-gray-500 dark:text-gray-400">
-                    {item.confidence != null ? `${item.confidence}%` : '-'}
-                  </td>
-                  <td className="py-3 text-right text-gray-500 dark:text-gray-400">
-                    {item.nutrition_source ? formatNutritionSource(item.nutrition_source) : '-'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div id={detailId} className="border-t border-line dark:border-night-line">
+          <div className="grid grid-cols-3 border-b border-line text-center dark:border-night-line sm:hidden">
+            <MacroTotal label="Protein" value={roundOne(macros.protein)} styles="text-protein" />
+            <MacroTotal label="Carbs" value={roundOne(macros.carbs)} styles="border-x border-line text-carbs dark:border-night-line" />
+            <MacroTotal label="Fat" value={roundOne(macros.fat)} styles="text-fat" />
+          </div>
+
+          <div className="divide-y divide-line dark:divide-night-line">
+            {meal.food_items.map(item => (
+              <div key={item.id} className="p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold capitalize text-ink dark:text-night-ink">{item.name}</h3>
+                    <p className="mt-1 text-xs text-ink-muted dark:text-night-muted">{item.weight_grams}g portion</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="numeric font-extrabold text-primary dark:text-night-primary">{item.calories}</p>
+                    <p className="text-[11px] text-ink-muted dark:text-night-muted">kcal</p>
+                  </div>
+                </div>
+
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-5">
+                  <Metric label="Protein" value={`${item.protein}g`} styles="text-protein" />
+                  <Metric label="Carbs" value={`${item.carbs}g`} styles="text-carbs" />
+                  <Metric label="Fat" value={`${item.fat}g`} styles="text-fat" />
+                  <Metric label="Confidence" value={item.confidence != null ? `${item.confidence}%` : 'Not recorded'} />
+                  <Metric label="Nutrition source" value={item.nutrition_source ? formatNutritionSource(item.nutrition_source) : 'Not recorded'} />
+                </dl>
+              </div>
+            ))}
+          </div>
         </div>
       )}
+    </article>
+  );
+}
+
+function MacroTotal({ label, value, styles }: { label: string; value: number; styles: string }) {
+  return (
+    <div className={cn('px-2 py-3', styles)}>
+      <p className="numeric text-sm font-extrabold">{value}g</p>
+      <p className="mt-0.5 text-[11px] font-bold">{label}</p>
+    </div>
+  );
+}
+
+function Metric({ label, value, styles }: { label: string; value: string; styles?: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink-soft dark:text-night-muted">{label}</dt>
+      <dd className={cn('mt-1 break-words font-semibold text-ink dark:text-night-ink', styles)}>{value}</dd>
     </div>
   );
 }
@@ -234,5 +265,5 @@ function roundOne(value: number) {
 }
 
 function formatNutritionSource(source: string) {
-  return source.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+  return source.replace(/_/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthField, AuthShell } from '../components/AuthShell';
+import { Button, InlineAlert } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -31,38 +32,43 @@ export default function LoginPage() {
       subtitle="Review your meal history, analyze new plates, and keep nutrition data in one place."
     >
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-300">
-          {error}
-        </div>
+        <div className="mb-5"><InlineAlert tone="error">{error}</InlineAlert></div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <AuthField
+          id="login-email"
+          name="email"
           label="Email"
           type="email"
+          autoComplete="email"
           value={form.email}
           onChange={value => setForm({ ...form, email: value })}
           placeholder="you@example.com"
         />
         <AuthField
+          id="login-password"
+          name="password"
           label="Password"
           type="password"
+          autoComplete="current-password"
           value={form.password}
           onChange={value => setForm({ ...form, password: value })}
           placeholder="Enter your password"
         />
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition-colors"
+          loading={loading}
+          size="lg"
+          className="w-full"
         >
           {loading ? 'Signing in...' : 'Sign In'}
-        </button>
+        </Button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6 dark:text-gray-400">
+      <p className="mt-7 text-center text-sm text-ink-muted dark:text-night-muted">
         Do not have an account?{' '}
-        <Link to="/register" className="text-green-700 font-semibold hover:underline dark:text-green-400">
+        <Link to="/register" className="font-bold text-primary underline-offset-4 hover:underline dark:text-night-primary">
           Create one
         </Link>
       </p>
