@@ -2,22 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
-  font-family: 'Inter', system-ui, sans-serif;
+@layer base {
+  html {
+    @apply bg-canvas text-ink antialiased dark:bg-night-canvas dark:text-night-ink;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply min-w-[320px] bg-canvas font-sans text-ink dark:bg-night-canvas dark:text-night-ink;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  input,
+  button,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-focus ring-offset-2 ring-offset-canvas dark:ring-offset-night-canvas;
+  }
 }
 
 ::selection {
-  @apply bg-green-100 text-green-950;
+  @apply bg-primary-soft text-primary-pressed dark:bg-night-primary-soft dark:text-night-ink;
 }
 
-input,
-button {
-  font: inherit;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .numeric {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-button:focus-visible,
-a:focus-visible,
-input:focus-visible {
-  @apply outline-none ring-2 ring-green-500 ring-offset-2;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -12,14 +12,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function AppLayout() {
   return (
-    <>
+    <div className="min-h-screen bg-canvas dark:bg-night-canvas">
       <Navbar />
-      <main className="min-h-screen bg-gray-50 pt-8 pb-12 dark:bg-gray-950">
-        <div className="max-w-6xl mx-auto px-4">
+      <main className="min-h-screen pb-28 pt-6 lg:ml-60 lg:pb-12 lg:pt-8">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
           <Outlet />
         </div>
       </main>
-    </>
+    </div>
   );
 }
 

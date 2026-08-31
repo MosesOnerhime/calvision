@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
+import { Camera, FileImage, ImageUp, RefreshCw, ScanLine, ShieldCheck } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { Button, InlineAlert, PageHeader, cn } from '../components/ui';
 
 export default function UploadPage() {
   const navigate = useNavigate();
@@ -10,19 +12,31 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const onDrop = useCallback((accepted: File[]) => {
-    const f = accepted[0];
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+  const selectFile = useCallback((selectedFile: File) => {
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
     setError('');
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const onDrop = useCallback((accepted: File[]) => {
+    if (accepted[0]) selectFile(accepted[0]);
+  }, [selectFile]);
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
+    onDropRejected: () => setError('Choose one JPG or PNG image to continue.'),
     accept: { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'] },
     maxFiles: 1,
+    multiple: false,
+    noClick: Boolean(preview),
   });
+
+  const clearSelection = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null);
+    setPreview(null);
+    setError('');
+  };
 
   const handleAnalyze = async () => {
     if (!file) return;
@@ -35,96 +49,107 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       navigate('/results', { state: { results: data, imagePreview: preview } });
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Analysis failed. Please try again.');
+    } catch (requestError: any) {
+      setError(requestError.response?.data?.error || 'Analysis failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6 items-start">
-        <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm dark:bg-gray-900 dark:border-gray-800">
-          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">Analyze Meal</p>
-          <h1 className="text-3xl font-bold text-gray-950 mt-1 dark:text-white">Upload a meal photo</h1>
-          <p className="text-gray-500 mt-3 dark:text-gray-400">
-            Use a clear, well-lit image so the model has the best chance of identifying the food.
-          </p>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Meal analysis"
+        title="Upload a meal photo"
+        description="Use one clear, well-lit image with the full plate visible. You will review every estimate before saving."
+      />
 
-          <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-gray-300">
-            {['JPG', 'PNG', '1 image'].map(item => (
-              <div key={item} className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-600" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm dark:bg-gray-900 dark:border-gray-800">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <section aria-label="Meal photo upload" className="rounded-2xl border border-line bg-surface p-4 dark:border-night-line dark:bg-night-surface sm:p-5">
           <div
-            {...getRootProps()}
-            className={`min-h-[360px] border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors flex items-center justify-center ${
-              isDragActive ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'
-            }`}
+            {...getRootProps({
+              'aria-label': preview ? 'Selected meal photo' : 'Upload a meal photo',
+            })}
+            className={cn(
+              'relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-xl border-2 border-dashed p-6 text-center transition-colors sm:min-h-[480px]',
+              !preview && 'cursor-pointer',
+              isDragActive
+                ? 'border-primary bg-primary-soft dark:border-night-primary dark:bg-night-primary-soft'
+                : 'border-line-strong bg-canvas hover:border-primary dark:border-night-line-strong dark:bg-night-canvas dark:hover:border-night-primary',
+            )}
           >
             <input {...getInputProps()} />
             {preview ? (
-              <img src={preview} alt="Meal preview" className="max-h-[520px] w-full object-contain rounded-lg" />
+              <>
+                <img src={preview} alt="Selected meal" className="absolute inset-0 h-full w-full object-contain" />
+                {loading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 px-6 text-white" aria-live="polite">
+                    <ScanLine aria-hidden="true" className="h-10 w-10 animate-pulse" />
+                    <p className="mt-4 font-extrabold">Analyzing your meal</p>
+                    <p className="mt-1 text-sm text-white/75">This may take a few moments.</p>
+                  </div>
+                )}
+              </>
             ) : (
-              <div>
-                <div className="mx-auto h-14 w-14 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-green-700 font-black dark:bg-green-950 dark:border-green-900 dark:text-green-300">
-                  +
-                </div>
-                <p className="text-gray-800 font-semibold mt-4 dark:text-gray-100">
-                  {isDragActive ? 'Drop your meal photo here' : 'Drag and drop a meal photo, or click to select'}
+              <div className="max-w-md">
+                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary-soft text-primary dark:bg-night-primary-soft dark:text-night-primary">
+                  <ImageUp aria-hidden="true" className="h-7 w-7" />
+                </span>
+                <h2 className="mt-5 text-lg font-extrabold text-ink dark:text-night-ink">
+                  {isDragActive ? 'Drop the photo here' : 'Drop a meal photo here'}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-ink-muted dark:text-night-muted">
+                  Or click anywhere in this area to choose a file from your device.
                 </p>
-                <p className="text-gray-500 text-sm mt-2 dark:text-gray-400">Supports JPG and PNG</p>
+                <p className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-ink-soft dark:text-night-muted">JPG or PNG · One image</p>
               </div>
             )}
           </div>
 
           {preview && (
-            <div className="mt-4 flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => { setFile(null); setPreview(null); }}
-                className="flex-1 border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                Choose Different Photo
-              </button>
-              <button
-                onClick={handleAnalyze}
-                disabled={!file || loading}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
-              >
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button type="button" variant="tertiary" onClick={clearSelection} disabled={loading}>
+                Remove
+              </Button>
+              <Button type="button" variant="secondary" onClick={open} disabled={loading}>
+                <RefreshCw aria-hidden="true" className="h-4 w-4" />
+                Choose another
+              </Button>
+              <Button type="button" onClick={handleAnalyze} loading={loading} disabled={!file}>
+                <ScanLine aria-hidden="true" className="h-4 w-4" />
                 {loading ? 'Analyzing...' : 'Analyze Meal'}
-              </button>
+              </Button>
             </div>
           )}
 
           {!preview && (
-            <button
-              onClick={handleAnalyze}
-              disabled={!file || loading}
-              className="mt-4 w-full bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              Analyze Meal
-            </button>
+            <Button type="button" onClick={open} size="lg" className="mt-4 w-full sm:w-auto">
+              <FileImage aria-hidden="true" className="h-5 w-5" />
+              Choose Photo
+            </Button>
           )}
 
-          {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm dark:bg-red-950 dark:border-red-900 dark:text-red-300">
-              {error}
-            </div>
-          )}
-
-          {loading && (
-            <p className="text-center text-gray-500 text-sm mt-3 dark:text-gray-400">
-              Analyzing your meal. This may take a few seconds.
-            </p>
-          )}
+          {error && <div className="mt-4"><InlineAlert tone="error">{error}</InlineAlert></div>}
         </section>
+
+        <aside className="space-y-6 lg:sticky lg:top-8">
+          <div className="border-l-4 border-primary bg-primary-soft p-5 dark:border-night-primary dark:bg-night-primary-soft">
+            <Camera aria-hidden="true" className="h-6 w-6 text-primary dark:text-night-primary" />
+            <h2 className="mt-4 font-extrabold text-primary-pressed dark:text-night-ink">For a clearer result</h2>
+            <ul className="mt-3 space-y-3 text-sm leading-6 text-ink-muted dark:text-night-muted">
+              <li>Keep the whole plate inside the frame.</li>
+              <li>Use even lighting and avoid strong shadows.</li>
+              <li>Photograph the meal from above where possible.</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3 border-t border-line pt-5 dark:border-night-line">
+            <ShieldCheck aria-hidden="true" className="h-5 w-5 shrink-0 text-primary dark:text-night-primary" />
+            <p className="text-sm leading-6 text-ink-muted dark:text-night-muted">
+              Results are estimates. Check the identified foods and adjust portions before saving.
+            </p>
+          </div>
+        </aside>
       </div>
     </div>
   );
