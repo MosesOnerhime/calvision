@@ -172,7 +172,8 @@ def _preprocess_image(image_bytes: bytes, input_detail: dict) -> np.ndarray:
     img_array = np.asarray(img)
 
     if np.issubdtype(dtype, np.floating):
-        img_array = img_array.astype(np.float32) / 255.0
+        # Teachable Machine image models expect float input normalized to [-1, 1].
+        img_array = (img_array.astype(np.float32) / 127.5) - 1.0
     else:
         scale, zero_point = input_detail.get('quantization', (0, 0))
         if scale and scale > 0:

@@ -19,6 +19,17 @@ def env_list(name, default=''):
     return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
 
 
+def env_origin_list(name, default=''):
+    origins = []
+    for item in env_list(name, default):
+        parsed = urlparse(item)
+        if parsed.scheme and parsed.netloc:
+            origins.append(f'{parsed.scheme}://{parsed.netloc}')
+        else:
+            origins.append(item.rstrip('/'))
+    return origins
+
+
 DEBUG = env_bool('DEBUG', True)
 TESTING = 'test' in sys.argv
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-dev-secret-key-change-in-prod')
@@ -180,7 +191,7 @@ SIMPLE_JWT = {
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = env_list(
+CORS_ALLOWED_ORIGINS = env_origin_list(
     'CORS_ALLOWED_ORIGINS',
     'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173',
 )
@@ -193,7 +204,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
+CSRF_TRUSTED_ORIGINS = env_origin_list('CSRF_TRUSTED_ORIGINS')
 if ALLOW_NGROK:
     for origin in (
         'https://*.ngrok-free.app',
@@ -206,3 +217,13 @@ if ALLOW_NGROK:
 
 # USDA
 USDA_API_KEY = os.getenv('USDA_API_KEY', 'DEMO_KEY')
+
+# Production proxy/security settings
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = env_bool('USE_X_FORWARDED_HOST', False)
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', not DEBUG)
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', False)
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', False)
+SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', False)

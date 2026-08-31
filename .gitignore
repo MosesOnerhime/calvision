@@ -38,3 +38,6 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+# Local deployment packages
+.tmp/

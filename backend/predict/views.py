@@ -39,6 +39,26 @@ PORTION_SIZES = {
 }
 
 DEFAULT_PORTION = 250
+AREA_REFERENCE_RATIOS = {
+    'jollof_rice': 0.28,
+    'fried_rice': 0.28,
+    'egusi_soup': 0.24,
+    'pepper_soup': 0.24,
+    'pounded_yam': 0.20,
+    'eba': 0.20,
+    'fufu': 0.20,
+    'amala': 0.20,
+    'moi_moi': 0.14,
+    'akara': 0.10,
+    'suya': 0.14,
+    'fried_plantain': 0.12,
+    'chicken': 0.14,
+}
+MIN_MASK_AREA_RATIO = 0.003
+MAX_MASK_AREA_RATIO = 0.85
+AREA_WEIGHT_EXPONENT = 0.75
+MIN_PORTION_MULTIPLIER = 0.15
+MAX_PORTION_MULTIPLIER = 2.5
 
 MOCK_RESPONSE = {
     "items": [
@@ -174,17 +194,55 @@ def nutrition_items_from_detections(detections: list[dict]) -> list[dict]:
     items = []
     for raw_name, raw_detections in grouped.items():
         display_name = raw_detections[0]['name']
-        weight = PORTION_SIZES.get(raw_name, DEFAULT_PORTION)
+        weight, portion_method = estimate_portion_from_mask_area(raw_name, raw_detections)
         nutrition = calculate_nutrition(display_name, weight, prefer_fallback=True)
         avg_confidence = sum(item.get('confidence', 0) for item in raw_detections) / len(raw_detections)
         nutrition['confidence'] = round(avg_confidence * 100, 1)
         nutrition['raw_name'] = raw_name
         nutrition['nutrition_source'] = 'yolo_segmentation_curated_african_food_fallback'
+        nutrition['portion_estimation_method'] = portion_method
         nutrition['detection_count'] = len(raw_detections)
         items.append(nutrition)
 
     items.sort(key=lambda item: item.get('confidence', 0), reverse=True)
     return items
+
+
+def estimate_portion_from_mask_area(raw_name: str, detections: list[dict]) -> tuple[float, str]:
+    default_weight = PORTION_SIZES.get(raw_name, DEFAULT_PORTION)
+    reference_ratio = AREA_REFERENCE_RATIOS.get(raw_name, 0.20)
+    estimated_weights = []
+
+    for detection in detections:
+        ratio = mask_area_ratio(detection.get('mask'))
+        if ratio is None or ratio < MIN_MASK_AREA_RATIO or ratio > MAX_MASK_AREA_RATIO:
+            continue
+
+        area_scale = (ratio / reference_ratio) ** AREA_WEIGHT_EXPONENT
+        estimated_weights.append(default_weight * area_scale)
+
+    if not estimated_weights:
+        return default_weight, 'default_portion_no_valid_mask_area'
+
+    estimated_weight = round(sum(estimated_weights), 1)
+    min_reasonable = max(10, default_weight * MIN_PORTION_MULTIPLIER)
+    max_reasonable = default_weight * MAX_PORTION_MULTIPLIER * max(1, len(estimated_weights))
+
+    if estimated_weight < min_reasonable or estimated_weight > max_reasonable:
+        return default_weight, 'default_portion_area_out_of_range'
+
+    return estimated_weight, 'mask_area_estimate'
+
+
+def mask_area_ratio(mask) -> float | None:
+    if mask is None:
+        return None
+
+    mask_array = np.asarray(mask)
+    if mask_array.size == 0:
+        return None
+
+    return float(np.count_nonzero(mask_array > 0.5) / mask_array.size)
 
 
 def serialize_detections(detections: list[dict]) -> list[dict]:
@@ -201,7 +259,7 @@ def serialize_detections(detections: list[dict]) -> list[dict]:
 
 def render_detection_overlay(img: Image.Image, detections: list[dict]) -> str:
     annotated = img.convert('RGBA')
-    font = ImageFont.load_default()
+    font = overlay_font(annotated.size)
 
     for index, detection in enumerate(detections):
         color = OVERLAY_COLORS[index % len(OVERLAY_COLORS)]
@@ -219,7 +277,8 @@ def render_detection_overlay(img: Image.Image, detections: list[dict]) -> str:
     for index, detection in enumerate(detections):
         color = OVERLAY_COLORS[index % len(OVERLAY_COLORS)]
         x1, y1, x2, y2 = [int(value) for value in detection['box']]
-        draw.rectangle((x1, y1, x2, y2), outline=color + (255,), width=4)
+        stroke_width = max(4, annotated.width // 180)
+        draw.rectangle((x1, y1, x2, y2), outline=color + (255,), width=stroke_width)
 
         confidence = detection.get('confidence')
         label = detection['name']
@@ -233,15 +292,28 @@ def render_detection_overlay(img: Image.Image, detections: list[dict]) -> str:
         text_box = draw.textbbox((0, 0), label, font=font)
         text_width = text_box[2] - text_box[0]
         text_height = text_box[3] - text_box[1]
-        label_y = max(0, y1 - text_height - 8)
-        label_width = min(text_width + 10, annotated.width - x1)
+        padding_x = max(8, annotated.width // 120)
+        padding_y = max(6, annotated.height // 160)
+        label_y = max(0, y1 - text_height - (padding_y * 2))
+        label_width = min(text_width + (padding_x * 2), annotated.width - x1)
         draw.rectangle(
-            (x1, label_y, x1 + label_width, label_y + text_height + 8),
+            (x1, label_y, x1 + label_width, label_y + text_height + (padding_y * 2)),
             fill=color + (230,),
         )
-        draw.text((x1 + 5, label_y + 4), label, fill=(255, 255, 255, 255), font=font)
+        draw.text((x1 + padding_x, label_y + padding_y), label, fill=(255, 255, 255, 255), font=font)
 
     return _image_to_data_url(annotated.convert('RGB'))
+
+
+def overlay_font(image_size: tuple[int, int]):
+    width, height = image_size
+    font_size = max(18, min(42, int(min(width, height) * 0.045)))
+    for font_name in ('arialbd.ttf', 'arial.ttf', 'DejaVuSans-Bold.ttf'):
+        try:
+            return ImageFont.truetype(font_name, font_size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
 
 
 def _image_to_data_url(img: Image.Image) -> str:
